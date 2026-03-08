@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -24,6 +24,20 @@ function formatFullDate(dateStr: string) {
     month: "long",
     year: "numeric",
   });
+}
+
+function DetailRow({ icon, label, value }: { icon: string; label: string; value: string }) {
+  return (
+    <View style={styles.detailRow}>
+      <View style={styles.detailIconWrap}>
+        <Ionicons name={icon as any} size={16} color={C.lightGray} />
+      </View>
+      <View style={styles.detailContent}>
+        <Text style={styles.detailLabel}>{label}</Text>
+        <Text style={styles.detailValue}>{value}</Text>
+      </View>
+    </View>
+  );
 }
 
 export default function TransactionDetailScreen() {
@@ -64,8 +78,18 @@ export default function TransactionDetailScreen() {
     ]);
   };
 
+  const handleEdit = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({ pathname: "/edit-transaction", params: { id: transaction.id } });
+  };
+
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 24) }]}>
+    <View
+      style={[
+        styles.container,
+        { paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 24) },
+      ]}
+    >
       <View style={styles.grabBar} />
 
       {/* Header */}
@@ -77,7 +101,12 @@ export default function TransactionDetailScreen() {
       </View>
 
       {/* Main Card */}
-      <View style={[styles.mainCard, { borderColor: accentColor + "44", backgroundColor: accentDim }]}>
+      <View
+        style={[
+          styles.mainCard,
+          { borderColor: accentColor + "44", backgroundColor: accentDim },
+        ]}
+      >
         <CategoryIcon categoryKey={transaction.category} size={24} />
         <View style={styles.mainCardInfo}>
           <Text style={styles.categoryLabel}>{cat?.label ?? transaction.category}</Text>
@@ -94,25 +123,13 @@ export default function TransactionDetailScreen() {
 
       {/* Details */}
       <View style={styles.detailsCard}>
-        <DetailRow
-          icon="calendar-outline"
-          label="Date"
-          value={formatFullDate(transaction.date)}
-        />
+        <DetailRow icon="calendar-outline" label="Date" value={formatFullDate(transaction.date)} />
         <View style={styles.divider} />
-        <DetailRow
-          icon="pricetag-outline"
-          label="Category"
-          value={cat?.label ?? transaction.category}
-        />
+        <DetailRow icon="pricetag-outline" label="Category" value={cat?.label ?? transaction.category} />
         {transaction.note ? (
           <>
             <View style={styles.divider} />
-            <DetailRow
-              icon="pencil-outline"
-              label="Note"
-              value={transaction.note}
-            />
+            <DetailRow icon="pencil-outline" label="Note" value={transaction.note} />
           </>
         ) : null}
         <View style={styles.divider} />
@@ -129,27 +146,22 @@ export default function TransactionDetailScreen() {
         />
       </View>
 
-      {/* Delete */}
-      <Pressable
-        style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.8 }]}
-        onPress={handleDelete}
-      >
-        <Ionicons name="trash-outline" size={18} color={C.red} />
-        <Text style={styles.deleteBtnText}>Delete Transaction</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-function DetailRow({ icon, label, value }: { icon: string; label: string; value: string }) {
-  return (
-    <View style={styles.detailRow}>
-      <View style={styles.detailIconWrap}>
-        <Ionicons name={icon as any} size={16} color={C.lightGray} />
-      </View>
-      <View style={styles.detailContent}>
-        <Text style={styles.detailLabel}>{label}</Text>
-        <Text style={styles.detailValue}>{value}</Text>
+      {/* Actions */}
+      <View style={styles.actionRow}>
+        <Pressable
+          style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.8 }]}
+          onPress={handleEdit}
+        >
+          <Ionicons name="pencil" size={17} color={C.offWhite} />
+          <Text style={styles.editBtnText}>Edit</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.8 }]}
+          onPress={handleDelete}
+        >
+          <Ionicons name="trash-outline" size={17} color={C.red} />
+          <Text style={styles.deleteBtnText}>Delete</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -193,11 +205,7 @@ const styles = StyleSheet.create({
   mainCardInfo: { flex: 1 },
   categoryLabel: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.lightGray },
   amountText: { fontFamily: "Inter_700Bold", fontSize: 32, letterSpacing: -1 },
-  typeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
+  typeBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
   typeBadgeText: { fontFamily: "Inter_500Medium", fontSize: 12 },
   detailsCard: {
     backgroundColor: C.card2,
@@ -207,12 +215,7 @@ const styles = StyleSheet.create({
     borderColor: C.border,
     overflow: "hidden",
   },
-  detailRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    padding: 16,
-    gap: 12,
-  },
+  detailRow: { flexDirection: "row", alignItems: "flex-start", padding: 16, gap: 12 },
   detailIconWrap: {
     width: 32,
     height: 32,
@@ -226,7 +229,22 @@ const styles = StyleSheet.create({
   detailLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.lightGray },
   detailValue: { fontFamily: "Inter_500Medium", fontSize: 15, color: C.offWhite, marginTop: 2 },
   divider: { height: 1, backgroundColor: C.border, marginLeft: 60 },
+  actionRow: { flexDirection: "row", gap: 12 },
+  editBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: C.card2,
+    borderRadius: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  editBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: C.offWhite },
   deleteBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -238,7 +256,13 @@ const styles = StyleSheet.create({
     borderColor: C.red + "44",
   },
   deleteBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: C.red },
-  notFound: { flex: 1, backgroundColor: C.black, alignItems: "center", justifyContent: "center", gap: 16 },
+  notFound: {
+    flex: 1,
+    backgroundColor: C.black,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
+  },
   notFoundText: { fontFamily: "Inter_500Medium", fontSize: 16, color: C.lightGray },
   backBtn: {
     backgroundColor: C.card,

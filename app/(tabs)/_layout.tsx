@@ -12,19 +12,23 @@ function NativeTabLayout() {
     <NativeTabs>
       <NativeTabs.Trigger name="index">
         <Icon sf={{ default: "house", selected: "house.fill" }} />
-        <Label>Dashboard</Label>
+        <Label>Home</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="transactions">
         <Icon sf={{ default: "list.bullet", selected: "list.bullet" }} />
         <Label>History</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="analytics">
-        <Icon sf={{ default: "chart.bar", selected: "chart.bar.fill" }} />
+        <Icon sf={{ default: "chart.pie", selected: "chart.pie.fill" }} />
         <Label>Analytics</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="settings">
-        <Icon sf={{ default: "gearshape", selected: "gearshape.fill" }} />
-        <Label>Settings</Label>
+      <NativeTabs.Trigger name="budgets">
+        <Icon sf={{ default: "creditcard", selected: "creditcard.fill" }} />
+        <Label>Budgets</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="ai-coach">
+        <Icon sf={{ default: "sparkles", selected: "sparkles" }} />
+        <Label>Coach</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -48,6 +52,7 @@ function ClassicTabLayout() {
           elevation: 0,
           ...(isWeb ? { height: 84 } : {}),
         },
+        tabBarLabelStyle: { fontSize: 10 },
         tabBarBackground: () =>
           isIOS ? (
             <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
@@ -59,7 +64,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Dashboard",
+          title: "Home",
           tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
         }}
       />
@@ -74,14 +79,21 @@ function ClassicTabLayout() {
         name="analytics"
         options={{
           title: "Analytics",
-          tabBarIcon: ({ color, size }) => <Ionicons name="bar-chart" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="pie-chart" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="budgets"
         options={{
-          title: "Settings",
-          tabBarIcon: ({ color, size }) => <Ionicons name="settings" size={size} color={color} />,
+          title: "Budgets",
+          tabBarIcon: ({ color, size }) => <Ionicons name="wallet" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="ai-coach"
+        options={{
+          title: "Coach",
+          tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" size={size} color={color} />,
         }}
       />
     </Tabs>

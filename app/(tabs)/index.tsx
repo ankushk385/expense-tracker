@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useTransactions, Transaction } from "@/context/transactions";
 import { useAuth } from "@/context/auth";
+import { useBudgets } from "@/context/budgets";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { getCategoryById, formatINR } from "@/constants/categories";
 import C from "@/constants/colors";
@@ -43,13 +44,154 @@ function formatDate(dateStr: string) {
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
+interface Insight {
+  id: string;
+  icon: string;
+  color: string;
+  bgColor: string;
+  title: string;
+  body: string;
+  action?: { label: string; route: string };
+}
+
+function useSmartInsights(
+  transactions: Transaction[],
+  budgets: ReturnType<typeof useBudgets>["budgets"]
+): Insight[] {
+  return useMemo(() => {
+    const insights: Insight[] = [];
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const prevDate = new Date(now);
+    prevDate.setMonth(prevDate.getMonth() - 1);
+    const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
+
+    const thisMonthExp = transactions.filter((t) => t.type === "expense" && t.date.startsWith(currentMonth));
+    const prevMonthExp = transactions.filter((t) => t.type === "expense" && t.date.startsWith(prevMonth));
+    const thisTotal = thisMonthExp.reduce((s, t) => s + t.amount, 0);
+    const prevTotal = prevMonthExp.reduce((s, t) => s + t.amount, 0);
+
+    if (prevTotal > 0 && thisTotal > 0) {
+      const change = Math.round(((thisTotal - prevTotal) / prevTotal) * 100);
+      if (Math.abs(change) >= 10) {
+        insights.push({
+          id: "month_compare",
+          icon: change > 0 ? "trending-up" : "trending-down",
+          color: change > 0 ? C.red : C.green,
+          bgColor: change > 0 ? C.redDim : C.greenDim,
+          title: change > 0 ? `Spending up ${change}%` : `Spending down ${Math.abs(change)}%`,
+          body: `You spent ₹${formatINR(thisTotal)} this month vs ₹${formatINR(prevTotal)} last month.`,
+        });
+      }
+    }
+
+    const catSpend: Record<string, number> = {};
+    for (const t of thisMonthExp) {
+      catSpend[t.category] = (catSpend[t.category] ?? 0) + t.amount;
+    }
+    const topCat = Object.entries(catSpend).sort((a, b) => b[1] - a[1])[0];
+    if (topCat && thisTotal > 0) {
+      const pct = Math.round((topCat[1] / thisTotal) * 100);
+      const cat = getCategoryById(topCat[0]);
+      if (pct >= 30) {
+        insights.push({
+          id: "top_category",
+          icon: (cat?.icon ?? "pricetag") as string,
+          color: cat?.color ?? C.red,
+          bgColor: (cat?.color ?? C.red) + "22",
+          title: `${cat?.label ?? topCat[0]} is ${pct}% of expenses`,
+          body: `You spent ₹${formatINR(topCat[1])} on ${cat?.label ?? topCat[0]} this month.`,
+          action: { label: "View Analytics", route: "/(tabs)/analytics" },
+        });
+      }
+    }
+
+    for (const budget of budgets) {
+      const spent = catSpend[budget.categoryKey] ?? 0;
+      const pct = budget.monthlyLimit > 0 ? (spent / budget.monthlyLimit) * 100 : 0;
+      const cat = getCategoryById(budget.categoryKey);
+      if (pct >= 100) {
+        insights.push({
+          id: `over_${budget.categoryKey}`,
+          icon: "warning",
+          color: C.red,
+          bgColor: C.redDim,
+          title: `Over budget: ${cat?.label ?? budget.categoryKey}`,
+          body: `You've spent ₹${formatINR(spent)} — ₹${formatINR(spent - budget.monthlyLimit)} over your ₹${formatINR(budget.monthlyLimit)} limit.`,
+          action: { label: "Edit Budget", route: "/(tabs)/budgets" },
+        });
+        break;
+      } else if (pct >= (budget.alertPct ?? 80)) {
+        insights.push({
+          id: `alert_${budget.categoryKey}`,
+          icon: "alert-circle",
+          color: "#F4A261",
+          bgColor: "rgba(244,162,97,0.15)",
+          title: `${Math.round(pct)}% of ${cat?.label ?? budget.categoryKey} budget used`,
+          body: `₹${formatINR(budget.monthlyLimit - spent)} remaining for the month.`,
+          action: { label: "View Budgets", route: "/(tabs)/budgets" },
+        });
+        break;
+      }
+    }
+
+    if (insights.length === 0 && transactions.length > 0) {
+      const totalInc = transactions.filter((t) => t.type === "income" && t.date.startsWith(currentMonth)).reduce((s, t) => s + t.amount, 0);
+      if (totalInc > 0 && thisTotal > 0) {
+        const savRate = Math.round(((totalInc - thisTotal) / totalInc) * 100);
+        insights.push({
+          id: "savings_rate",
+          icon: "sparkles",
+          color: C.green,
+          bgColor: C.greenDim,
+          title: `${savRate >= 0 ? savRate + "% saved" : "Overspending this month"}`,
+          body: savRate >= 20
+            ? "Great job! You're saving well this month."
+            : savRate >= 0
+            ? "Try to save at least 20% of your income."
+            : `You spent ₹${formatINR(thisTotal - totalInc)} more than you earned.`,
+        });
+      }
+    }
+
+    return insights.slice(0, 3);
+  }, [transactions, budgets]);
+}
+
+function InsightCard({ insight }: { insight: Insight }) {
+  return (
+    <Pressable
+      style={[styles.insightCard, { borderLeftColor: insight.color, borderLeftWidth: 3 }]}
+      onPress={() => {
+        if (insight.action) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push(insight.action.route as any);
+        }
+      }}
+    >
+      <View style={[styles.insightIconWrap, { backgroundColor: insight.bgColor }]}>
+        <Ionicons name={insight.icon as any} size={18} color={insight.color} />
+      </View>
+      <View style={styles.insightContent}>
+        <Text style={styles.insightTitle}>{insight.title}</Text>
+        <Text style={styles.insightBody}>{insight.body}</Text>
+        {insight.action && (
+          <Text style={[styles.insightAction, { color: insight.color }]}>{insight.action.label} →</Text>
+        )}
+      </View>
+    </Pressable>
+  );
+}
+
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { transactions, totalIncome, totalExpenses, balance, isLoading } = useTransactions();
+  const { budgets } = useBudgets();
 
   const recent = useMemo(() => transactions.slice(0, 10), [transactions]);
   const firstName = user?.name?.split(" ")[0] ?? "there";
+  const insights = useSmartInsights(transactions, budgets);
 
   const topInset = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomInset = insets.bottom + (Platform.OS === "web" ? 34 : 0);
@@ -109,6 +251,19 @@ export default function DashboardScreen() {
 
         {/* Spending Chart */}
         <SpendingChart />
+
+        {/* Smart Insights */}
+        {insights.length > 0 && (
+          <View style={styles.insightsSection}>
+            <View style={styles.insightsSectionHeader}>
+              <Ionicons name="sparkles" size={14} color={C.green} />
+              <Text style={styles.insightsSectionTitle}>Smart Insights</Text>
+            </View>
+            {insights.map((insight) => (
+              <InsightCard key={insight.id} insight={insight} />
+            ))}
+          </View>
+        )}
 
         {/* Action Buttons */}
         <View style={styles.actionRow}>
@@ -288,4 +443,41 @@ const styles = StyleSheet.create({
   txnCategory: { fontFamily: "Inter_500Medium", fontSize: 14, color: C.offWhite },
   txnNote: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.lightGray, marginTop: 2 },
   txnAmount: { fontFamily: "Inter_600SemiBold", fontSize: 15 },
+  insightsSection: { marginBottom: 20, gap: 8 },
+  insightsSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
+  insightsSectionTitle: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    color: C.green,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  insightCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    backgroundColor: C.card,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  insightIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  insightContent: { flex: 1, gap: 2 },
+  insightTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: C.offWhite },
+  insightBody: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.lightGray, lineHeight: 18 },
+  insightAction: { fontFamily: "Inter_500Medium", fontSize: 12, marginTop: 4 },
 });

@@ -15,6 +15,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { AuthProvider, useAuth } from "@/context/auth";
 import { TransactionsProvider } from "@/context/transactions";
+import { BudgetsProvider } from "@/context/budgets";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -25,9 +26,10 @@ function RootLayoutNav() {
   useEffect(() => {
     if (isLoading) return;
     const inAuthGroup = segments[0] === "(auth)";
-    if (!user && !inAuthGroup) {
+    const inOnboarding = segments[0] === "onboarding";
+    if (!user && !inAuthGroup && !inOnboarding) {
       router.replace("/(auth)/login");
-    } else if (user && inAuthGroup) {
+    } else if (user && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)");
     }
   }, [user, isLoading, segments]);
@@ -36,8 +38,19 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="onboarding" options={{ headerShown: false }} />
       <Stack.Screen
         name="add-transaction"
+        options={{
+          presentation: "formSheet",
+          sheetAllowedDetents: [0.92],
+          sheetGrabberVisible: true,
+          headerShown: false,
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="edit-transaction"
         options={{
           presentation: "formSheet",
           sheetAllowedDetents: [0.92],
@@ -50,7 +63,17 @@ function RootLayoutNav() {
         name="transaction/[id]"
         options={{
           presentation: "formSheet",
-          sheetAllowedDetents: [0.75],
+          sheetAllowedDetents: [0.78],
+          sheetGrabberVisible: true,
+          headerShown: false,
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="set-budget"
+        options={{
+          presentation: "formSheet",
+          sheetAllowedDetents: [0.55],
           sheetGrabberVisible: true,
           headerShown: false,
           contentStyle: { backgroundColor: "transparent" },
@@ -83,7 +106,9 @@ export default function RootLayout() {
           <KeyboardProvider>
             <AuthProvider>
               <TransactionsProvider>
-                <RootLayoutNav />
+                <BudgetsProvider>
+                  <RootLayoutNav />
+                </BudgetsProvider>
               </TransactionsProvider>
             </AuthProvider>
           </KeyboardProvider>

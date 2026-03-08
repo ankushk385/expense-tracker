@@ -8,7 +8,7 @@ import {
   Platform,
   Dimensions,
 } from "react-native";
-import Svg, { Rect, Circle, Text as SvgText, Line } from "react-native-svg";
+import Svg, { Rect, Circle, Text as SvgText, Line, Path, G } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTransactions } from "@/context/transactions";
@@ -52,6 +52,43 @@ function groupByMonth(transactions: any[], period: Period) {
   return months;
 }
 
+function PieChart({ data }: { data: { label: string; value: number; color: string }[] }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  if (total === 0) return null;
+
+  const R = 70;
+  const cx = 90;
+  const cy = 90;
+  let cumulativePct = 0;
+
+  const slices = data.map((d) => {
+    const pct = d.value / total;
+    const startAngle = cumulativePct * 2 * Math.PI - Math.PI / 2;
+    cumulativePct += pct;
+    const endAngle = cumulativePct * 2 * Math.PI - Math.PI / 2;
+    const x1 = cx + R * Math.cos(startAngle);
+    const y1 = cy + R * Math.sin(startAngle);
+    const x2 = cx + R * Math.cos(endAngle);
+    const y2 = cy + R * Math.sin(endAngle);
+    const largeArc = pct > 0.5 ? 1 : 0;
+    const path = `M ${cx} ${cy} L ${x1} ${y1} A ${R} ${R} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+    return { ...d, path, pct };
+  });
+
+  return (
+    <View style={{ alignItems: "center" }}>
+      <Svg width={180} height={180}>
+        <G>
+          {slices.map((s, i) => (
+            <Path key={i} d={s.path} fill={s.color} />
+          ))}
+          <Circle cx={cx} cy={cy} r={42} fill="#111" />
+        </G>
+      </Svg>
+    </View>
+  );
+}
+
 function CategoryBreakdown({ transactions }: { transactions: any[] }) {
   const byCategory = useMemo(() => {
     const map: Record<string, number> = {};
@@ -74,22 +111,46 @@ function CategoryBreakdown({ transactions }: { transactions: any[] }) {
     );
   }
 
+  const pieData = byCategory.map(({ key, total, cat }) => ({
+    label: cat?.label ?? key,
+    value: total,
+    color: cat?.color ?? C.mediumGray,
+  }));
+
   return (
-    <View style={styles.breakdown}>
-      {byCategory.map(({ key, total, cat }) => {
-        const pct = totalExpenses > 0 ? (total / totalExpenses) * 100 : 0;
-        const color = cat?.color ?? C.mediumGray;
-        return (
-          <View key={key} style={styles.bkRow}>
-            <View style={[styles.bkDot, { backgroundColor: color }]} />
-            <Text style={styles.bkLabel} numberOfLines={1}>{cat?.label ?? key}</Text>
-            <View style={styles.bkBarWrap}>
-              <View style={[styles.bkBar, { width: `${Math.max(pct, 2)}%` as any, backgroundColor: color }]} />
+    <View>
+      <View style={styles.pieRow}>
+        <PieChart data={pieData} />
+        <View style={styles.pieLegend}>
+          {byCategory.map(({ key, total, cat }) => {
+            const pct = totalExpenses > 0 ? Math.round((total / totalExpenses) * 100) : 0;
+            const color = cat?.color ?? C.mediumGray;
+            return (
+              <View key={key} style={styles.pieLegendItem}>
+                <View style={[styles.bkDot, { backgroundColor: color }]} />
+                <Text style={styles.pieLegendLabel} numberOfLines={1}>{cat?.label ?? key}</Text>
+                <Text style={[styles.pieLegendPct, { color }]}>{pct}%</Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+      <View style={styles.breakdown}>
+        {byCategory.map(({ key, total, cat }) => {
+          const pct = totalExpenses > 0 ? (total / totalExpenses) * 100 : 0;
+          const color = cat?.color ?? C.mediumGray;
+          return (
+            <View key={key} style={styles.bkRow}>
+              <View style={[styles.bkDot, { backgroundColor: color }]} />
+              <Text style={styles.bkLabel} numberOfLines={1}>{cat?.label ?? key}</Text>
+              <View style={styles.bkBarWrap}>
+                <View style={[styles.bkBar, { width: `${Math.max(pct, 2)}%` as any, backgroundColor: color }]} />
+              </View>
+              <Text style={styles.bkAmount}>₹{formatINR(total)}</Text>
             </View>
-            <Text style={styles.bkAmount}>₹{formatINR(total)}</Text>
-          </View>
-        );
-      })}
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -273,4 +334,9 @@ const styles = StyleSheet.create({
   bkAmount: { fontFamily: "Inter_500Medium", fontSize: 12, color: C.lightGray, width: 70, textAlign: "right" },
   emptySmall: { paddingVertical: 24, alignItems: "center" },
   emptySmallText: { fontFamily: "Inter_400Regular", fontSize: 14, color: C.mediumGray },
+  pieRow: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
+  pieLegend: { flex: 1, gap: 6, paddingLeft: 8 },
+  pieLegendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
+  pieLegendLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.offWhite, flex: 1 },
+  pieLegendPct: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
 });
