@@ -19,13 +19,12 @@ import {
   INCOME_CATEGORIES,
   Category,
   fromDateKey,
-  toDateKey,
+  isFutureDateKey,
+  shiftDateKey,
+  todayKey,
 } from "@/constants/categories";
+import { parseAmount, sanitizeAmountInput } from "@/lib/amount";
 import C from "@/constants/colors";
-
-function today() {
-  return toDateKey(new Date());
-}
 
 function formatDisplayDate(dateStr: string) {
   const d = fromDateKey(dateStr);
@@ -82,7 +81,7 @@ export default function AddTransactionScreen() {
   );
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
-  const [date, setDate] = useState(today());
+  const [date, setDate] = useState(todayKey());
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -90,8 +89,8 @@ export default function AddTransactionScreen() {
   const categories = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
   const handleSave = async () => {
-    const amt = parseFloat(amount.replace(/,/g, ""));
-    if (!amount || isNaN(amt) || amt <= 0) {
+    const amt = parseAmount(amount);
+    if (amt === null) {
       setError("Please enter a valid amount");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
@@ -181,9 +180,15 @@ export default function AddTransactionScreen() {
             placeholder="0"
             placeholderTextColor={C.mediumGray}
             value={amount}
-            onChangeText={(v) => setAmount(v.replace(/[^0-9.]/g, ""))}
-            keyboardType="numeric"
+            onChangeText={(v) => {
+              setAmount(sanitizeAmountInput(v));
+              if (error) setError("");
+            }}
+            keyboardType="decimal-pad"
+            inputMode="decimal"
+            maxLength={12}
             returnKeyType="done"
+            accessibilityLabel="Transaction amount in rupees"
             autoFocus
           />
         </View>
@@ -202,9 +207,7 @@ export default function AddTransactionScreen() {
               accessibilityLabel="Previous date"
               style={styles.dateBtn}
               onPress={() => {
-                const d = fromDateKey(date);
-                d.setDate(d.getDate() - 1);
-                setDate(toDateKey(d));
+                setDate((current) => shiftDateKey(current, -1));
                 Haptics.selectionAsync();
               }}
             >
@@ -213,15 +216,15 @@ export default function AddTransactionScreen() {
             <Text style={styles.dateText}>{formatDisplayDate(date)}</Text>
             <Pressable
               accessibilityLabel="Next date"
-              style={styles.dateBtn}
+              accessibilityState={{ disabled: isFutureDateKey(shiftDateKey(date, 1)) }}
+              disabled={isFutureDateKey(shiftDateKey(date, 1))}
+              style={[styles.dateBtn, isFutureDateKey(shiftDateKey(date, 1)) && { opacity: 0.3 }]}
               onPress={() => {
-                const d = fromDateKey(date);
-                const t = new Date();
-                if (d < t) {
-                  d.setDate(d.getDate() + 1);
-                  setDate(toDateKey(d));
-                  Haptics.selectionAsync();
-                }
+                setDate((current) => {
+                  const next = shiftDateKey(current, 1);
+                  return isFutureDateKey(next) ? current : next;
+                });
+                Haptics.selectionAsync();
               }}
             >
               <Ionicons name="chevron-forward" size={18} color={C.lightGray} />
@@ -255,10 +258,13 @@ export default function AddTransactionScreen() {
 
         {/* Save Button */}
         <Pressable
+          accessibilityLabel="Save transaction"
+          accessibilityState={{ disabled: saving }}
           style={({ pressed }) => [
             styles.saveBtn,
             { backgroundColor: accentColor },
             pressed && { opacity: 0.85 },
+            saving && { opacity: 0.7 },
           ]}
           onPress={handleSave}
           disabled={saving}

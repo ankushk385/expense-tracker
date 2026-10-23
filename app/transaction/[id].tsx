@@ -13,11 +13,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useTransactions } from "@/context/transactions";
 import { CategoryIcon } from "@/components/CategoryIcon";
-import { getCategoryById, formatINR } from "@/constants/categories";
+import { getCategoryById, formatINR, fromDateKey } from "@/constants/categories";
 import C from "@/constants/colors";
 
 function formatFullDate(dateStr: string) {
-  const d = new Date(dateStr);
+  const d = fromDateKey(dateStr);
   return d.toLocaleDateString("en-IN", {
     weekday: "long",
     day: "numeric",
@@ -136,7 +136,7 @@ export default function TransactionDetailScreen() {
         <DetailRow
           icon="time-outline"
           label="Added"
-          value={new Date(transaction.createdAt).toLocaleDateString("en-IN", {
+          value={new Date(transaction.createdAt).toLocaleString("en-IN", {
             day: "numeric",
             month: "short",
             year: "numeric",
@@ -149,6 +149,7 @@ export default function TransactionDetailScreen() {
       {/* Actions */}
       <View style={styles.actionRow}>
         <Pressable
+          accessibilityLabel="Edit transaction"
           style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.8 }]}
           onPress={handleEdit}
         >
@@ -156,6 +157,7 @@ export default function TransactionDetailScreen() {
           <Text style={styles.editBtnText}>Edit</Text>
         </Pressable>
         <Pressable
+          accessibilityLabel="Delete transaction"
           style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.8 }]}
           onPress={handleDelete}
         >

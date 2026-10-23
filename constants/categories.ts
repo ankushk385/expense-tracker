@@ -52,3 +52,31 @@ export function fromDateKey(key: string): Date {
   const [year, month, day] = key.split("-").map(Number);
   return new Date(year, month - 1, day);
 }
+
+/** Today as a YYYY-MM-DD key in the device's local timezone. */
+export function todayKey(): string {
+  return toDateKey(new Date());
+}
+
+/**
+ * Date keys are ISO strings, so lexicographic comparison is safe.
+ * Returns true when the key is after today (future dates are not allowed).
+ */
+export function isFutureDateKey(key: string): boolean {
+  return key > todayKey();
+}
+
+/** Shift a YYYY-MM-DD key by a number of days without timezone drift. */
+export function shiftDateKey(key: string, days: number): string {
+  const date = fromDateKey(key);
+  date.setDate(date.getDate() + days);
+  return toDateKey(date);
+}
+
+/**
+ * Parse a stored YYYY-MM-DD key for display. Using `new Date("2026-03-07")`
+ * parses as UTC and can render as the previous day in negative timezones.
+ */
+export function parseDateKey(key: string): Date {
+  return fromDateKey(key);
+}

@@ -43,6 +43,8 @@ function SettingsRow({
       style={({ pressed }) => [styles.row, pressed && onPress && { opacity: 0.7 }]}
       onPress={onPress}
       disabled={!onPress}
+      accessibilityRole={onPress ? "button" : "text"}
+      accessibilityLabel={sublabel ? `${label}. ${sublabel}` : label}
     >
       <View style={[styles.rowIcon, { backgroundColor: iconColor + "22" }]}>
         <Ionicons name={icon as any} size={18} color={iconColor} />
@@ -299,6 +301,7 @@ export default function SettingsScreen() {
 
         {/* Logout */}
         <Pressable
+          accessibilityLabel="Sign out"
           style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.8 }]}
           onPress={handleLogout}
         >

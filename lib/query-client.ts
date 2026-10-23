@@ -1,20 +1,41 @@
 import { fetch } from "expo/fetch";
+import Constants from "expo-constants";
+import { Platform } from "react-native";
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 /**
- * Gets the base URL for the Express API server (e.g., "http://localhost:3000")
- * @returns {string} The API base URL
+ * Gets the base URL for the Express API server.
+ *
+ * Priority:
+ * 1. EXPO_PUBLIC_API_URL — explicit override (e.g. a deployed server).
+ * 2. EXPO_PUBLIC_DOMAIN — Replit-style host (https://<host>).
+ * 3. The Metro host the app was loaded from (LAN IP in Expo Go) on port 5000.
+ * 4. localhost, for web/simulator development.
+ *
+ * Previously this threw when EXPO_PUBLIC_DOMAIN was missing, which made the
+ * AI Coach silently fail on any device build.
  */
 export function getApiUrl(): string {
-  let host = process.env.EXPO_PUBLIC_DOMAIN;
-
-  if (!host) {
-    throw new Error("EXPO_PUBLIC_DOMAIN is not set");
+  const explicit = process.env.EXPO_PUBLIC_API_URL;
+  if (explicit) {
+    return new URL(explicit.includes("://") ? explicit : `http://${explicit}`).href;
   }
 
-  let url = new URL(`https://${host}`);
+  const domain = process.env.EXPO_PUBLIC_DOMAIN;
+  if (domain) {
+    return new URL(domain.includes("://") ? domain : `https://${domain}`).href;
+  }
 
-  return url.href;
+  const hostUri =
+    Constants.expoConfig?.hostUri ??
+    (Constants as unknown as { expoGoConfig?: { debuggerHost?: string } })
+      .expoGoConfig?.debuggerHost;
+  const lanHost = hostUri?.split(":")[0];
+  if (lanHost) {
+    return `http://${lanHost}:5000`;
+  }
+
+  return Platform.OS === "web" ? "http://localhost:5000" : "http://localhost:5000";
 }
 
 async function throwIfResNotOk(res: Response) {

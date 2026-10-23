@@ -15,13 +15,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useTransactions, Transaction } from "@/context/transactions";
 import { CategoryIcon } from "@/components/CategoryIcon";
-import { getCategoryById, formatINR } from "@/constants/categories";
+import { getCategoryById, formatINR, fromDateKey } from "@/constants/categories";
 import C from "@/constants/colors";
 
 type Filter = "all" | "income" | "expense";
 
 function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
+  const d = fromDateKey(dateStr);
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
@@ -30,6 +30,7 @@ function TransactionRow({ item }: { item: Transaction }) {
   const isIncome = item.type === "income";
   return (
     <Pressable
+      accessibilityLabel={`${isIncome ? "Income" : "Expense"}, ${cat?.label ?? item.category}, ₹${formatINR(item.amount)}, ${formatDate(item.date)}`}
       style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -79,6 +80,7 @@ export default function TransactionsScreen() {
       <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <Text style={styles.title}>History</Text>
         <Pressable
+          accessibilityLabel="Add a transaction"
           style={styles.addBtn}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -98,6 +100,8 @@ export default function TransactionsScreen() {
           placeholderTextColor={C.mediumGray}
           value={search}
           onChangeText={setSearch}
+          accessibilityLabel="Search transactions"
+          returnKeyType="search"
         />
         {search ? (
           <Pressable accessibilityLabel="Clear transaction search" onPress={() => setSearch("")}>
@@ -111,6 +115,9 @@ export default function TransactionsScreen() {
         {(["all", "income", "expense"] as Filter[]).map((f) => (
           <Pressable
             key={f}
+            accessibilityRole="tab"
+            accessibilityLabel={`Show ${f === "all" ? "all transactions" : f === "income" ? "income only" : "expenses only"}`}
+            accessibilityState={{ selected: filter === f }}
             style={[
               styles.filterPill,
               filter === f && {

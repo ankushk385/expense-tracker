@@ -86,10 +86,10 @@ export default function RegisterScreen() {
 
         <View style={styles.card}>
           {[
-            { label: "Full Name", icon: "person-outline", value: name, setter: setName, placeholder: "Your full name", keyboard: "default" as const, secure: false },
-            { label: "Email", icon: "mail-outline", value: email, setter: setEmail, placeholder: "Your email address", keyboard: "email-address" as const, secure: false },
-            { label: "Password", icon: "lock-closed-outline", value: password, setter: setPassword, placeholder: "Minimum 6 characters", keyboard: "default" as const, secure: true },
-            { label: "Confirm Password", icon: "shield-checkmark-outline", value: confirm, setter: setConfirm, placeholder: "Re-enter password", keyboard: "default" as const, secure: true },
+            { label: "Full Name", icon: "person-outline", value: name, setter: setName, placeholder: "Your full name", keyboard: "default" as const, secure: false, autoCapitalize: "words" as const, autoComplete: "name" as const, textContentType: "name" as const },
+            { label: "Email", icon: "mail-outline", value: email, setter: setEmail, placeholder: "Your email address", keyboard: "email-address" as const, secure: false, autoCapitalize: "none" as const, autoComplete: "email" as const, textContentType: "emailAddress" as const },
+            { label: "Password", icon: "lock-closed-outline", value: password, setter: setPassword, placeholder: "Minimum 6 characters", keyboard: "default" as const, secure: true, autoCapitalize: "none" as const, autoComplete: "new-password" as const, textContentType: "newPassword" as const },
+            { label: "Confirm Password", icon: "shield-checkmark-outline", value: confirm, setter: setConfirm, placeholder: "Re-enter password", keyboard: "default" as const, secure: true, autoCapitalize: "none" as const, autoComplete: "new-password" as const, textContentType: "newPassword" as const },
           ].map((field) => (
             <View key={field.label} style={styles.inputGroup}>
               <Text style={styles.label}>{field.label}</Text>
@@ -100,14 +100,20 @@ export default function RegisterScreen() {
                   placeholder={field.placeholder}
                   placeholderTextColor={C.mediumGray}
                   value={field.value}
-                  onChangeText={field.setter}
-                  autoCapitalize={field.keyboard === "email-address" ? "none" : "words"}
+                  onChangeText={(value) => {
+                    field.setter(value);
+                    if (error) setError("");
+                  }}
+                  autoCapitalize={field.autoCapitalize}
+                  autoCorrect={!field.secure}
+                  autoComplete={field.autoComplete}
+                  textContentType={field.textContentType}
                   keyboardType={field.keyboard}
                   secureTextEntry={field.secure && !showPassword}
                   returnKeyType="next"
                 />
                 {field.secure && (
-                  <Pressable accessibilityLabel={showPassword ? "Hide password" : "Show password"} onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+                  <Pressable accessibilityLabel={showPassword ? "Hide passwords" : "Show passwords"} onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
                     <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color={C.lightGray} />
                   </Pressable>
                 )}
@@ -123,7 +129,9 @@ export default function RegisterScreen() {
           ) : null}
 
           <Pressable
-            style={({ pressed }) => [styles.registerBtn, pressed && styles.pressed]}
+            accessibilityLabel="Create account"
+            accessibilityState={{ disabled: loading }}
+            style={({ pressed }) => [styles.registerBtn, pressed && styles.pressed, loading && { opacity: 0.7 }]}
             onPress={handleRegister}
             disabled={loading}
           >

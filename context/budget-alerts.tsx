@@ -15,14 +15,18 @@ import { useBudgets } from "./budgets";
 import { useTransactions } from "./transactions";
 import { getCategoryById, formatINR } from "@/constants/categories";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+// expo-notifications has no web implementation; calling this at import time
+// would break the web build before the app even renders.
+if (Platform.OS !== "web") {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 interface BudgetAlertsValue {
   enabled: boolean;

@@ -25,14 +25,16 @@ interface BudgetCardProps {
 
 function BudgetCard({ categoryKey, monthlyLimit, spent, alertPct }: BudgetCardProps) {
   const cat = EXPENSE_CATEGORIES.find((c) => c.key === categoryKey);
-  const pct = monthlyLimit > 0 ? Math.min((spent / monthlyLimit) * 100, 100) : 0;
+  const rawPct = monthlyLimit > 0 ? (spent / monthlyLimit) * 100 : 0;
+  const pct = Math.min(rawPct, 100);
   const isOver = spent > monthlyLimit;
-  const isAlert = !isOver && pct >= alertPct;
+  const isAlert = !isOver && rawPct >= alertPct;
   const barColor = isOver ? C.red : isAlert ? "#F4A261" : C.green;
   const remaining = monthlyLimit - spent;
 
   return (
     <Pressable
+      accessibilityLabel={`${cat?.label ?? categoryKey} budget, ₹${formatINR(spent)} spent of ₹${formatINR(monthlyLimit)}${isOver ? ", over budget" : ""}`}
       style={styles.card}
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -62,7 +64,7 @@ function BudgetCard({ categoryKey, monthlyLimit, spent, alertPct }: BudgetCardPr
           </View>
         ) : isAlert ? (
           <View style={[styles.badge, { backgroundColor: "rgba(244,162,97,0.15)", borderColor: "#F4A261" + "44" }]}>
-            <Text style={[styles.badgeText, { color: "#F4A261" }]}>{Math.round(pct)}%</Text>
+            <Text style={[styles.badgeText, { color: "#F4A261" }]}>{Math.round(rawPct)}%</Text>
           </View>
         ) : null}
         <Ionicons name="pencil-outline" size={16} color={C.mediumGray} />
@@ -73,7 +75,7 @@ function BudgetCard({ categoryKey, monthlyLimit, spent, alertPct }: BudgetCardPr
       </View>
 
       <View style={styles.cardBottom}>
-        <Text style={styles.pctText}>{Math.round(pct)}% used</Text>
+        <Text style={styles.pctText}>{Math.round(rawPct)}% used</Text>
         {!isOver && (
           <Text style={[styles.remainText, { color: barColor }]}>
             ₹{formatINR(Math.abs(remaining))} {remaining >= 0 ? "remaining" : "over"}
@@ -90,6 +92,7 @@ function BudgetCard({ categoryKey, monthlyLimit, spent, alertPct }: BudgetCardPr
 function EmptyCatCard({ cat }: { cat: (typeof EXPENSE_CATEGORIES)[0] }) {
   return (
     <Pressable
+      accessibilityLabel={`Set a budget for ${cat.label}`}
       style={styles.emptyCard}
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -143,7 +146,7 @@ export default function BudgetsScreen() {
       <FlatList
         contentContainerStyle={{
           paddingTop: topPad + 8,
-          paddingBottom: botPad + 16,
+          paddingBottom: botPad + 100,
           paddingHorizontal: 16,
           gap: 10,
         }}
@@ -158,12 +161,18 @@ export default function BudgetsScreen() {
             {budgets.length > 0 && (
               <View style={styles.summaryCard}>
                 <View style={styles.summaryItem}>
-                  <Text style={styles.summaryVal}>₹{formatINR(totalBudgeted)}</Text>
+                  <Text style={styles.summaryVal} numberOfLines={1} adjustsFontSizeToFit>
+                    ₹{formatINR(totalBudgeted)}
+                  </Text>
                   <Text style={styles.summaryKey}>Total Budgeted</Text>
                 </View>
                 <View style={styles.summaryDivider} />
                 <View style={styles.summaryItem}>
-                  <Text style={[styles.summaryVal, { color: totalSpent > totalBudgeted ? C.red : C.offWhite }]}>
+                  <Text
+                    style={[styles.summaryVal, { color: totalSpent > totalBudgeted ? C.red : C.offWhite }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
                     ₹{formatINR(totalSpent)}
                   </Text>
                   <Text style={styles.summaryKey}>Total Spent</Text>

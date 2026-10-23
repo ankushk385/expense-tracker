@@ -97,7 +97,7 @@ function RootLayoutNav() {
         name="set-budget"
         options={{
           presentation: "formSheet",
-          sheetAllowedDetents: [0.55],
+          sheetAllowedDetents: [0.75],
           sheetGrabberVisible: true,
           headerShown: false,
           contentStyle: { backgroundColor: "transparent" },

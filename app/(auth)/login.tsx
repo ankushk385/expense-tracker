@@ -78,8 +78,12 @@ export default function LoginScreen() {
                 placeholder="Enter your email"
                 placeholderTextColor={C.mediumGray}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(v) => {
+                  setEmail(v);
+                  if (error) setError("");
+                }}
                 autoCapitalize="none"
+                autoCorrect={false}
                 keyboardType="email-address"
                 returnKeyType="next"
                 autoComplete="email"
@@ -96,11 +100,16 @@ export default function LoginScreen() {
                 placeholder="Enter your password"
                 placeholderTextColor={C.mediumGray}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(v) => {
+                  setPassword(v);
+                  if (error) setError("");
+                }}
                 secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
                 returnKeyType="done"
                 onSubmitEditing={handleLogin}
-                autoComplete="password"
+                autoComplete="current-password"
               />
               <Pressable accessibilityLabel={showPassword ? "Hide password" : "Show password"} onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
                 <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color={C.lightGray} />
@@ -116,7 +125,9 @@ export default function LoginScreen() {
           ) : null}
 
           <Pressable
-            style={({ pressed }) => [styles.loginBtn, pressed && styles.pressed]}
+            accessibilityLabel="Log in"
+            accessibilityState={{ disabled: loading }}
+            style={({ pressed }) => [styles.loginBtn, pressed && styles.pressed, loading && { opacity: 0.7 }]}
             onPress={handleLogin}
             disabled={loading}
           >
@@ -130,7 +141,7 @@ export default function LoginScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don&apos;t have an account?</Text>
-          <Pressable onPress={() => router.push("/(auth)/register")}>
+          <Pressable accessibilityLabel="Create an account" onPress={() => router.push("/(auth)/register")}>
             <Text style={styles.footerLink}>Create an account</Text>
           </Pressable>
         </View>

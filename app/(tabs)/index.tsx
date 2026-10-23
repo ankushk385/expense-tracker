@@ -15,7 +15,7 @@ import { useTransactions, Transaction } from "@/context/transactions";
 import { useAuth } from "@/context/auth";
 import { useBudgets } from "@/context/budgets";
 import { CategoryIcon } from "@/components/CategoryIcon";
-import { getCategoryById, formatINR } from "@/constants/categories";
+import { getCategoryById, formatINR, fromDateKey } from "@/constants/categories";
 import C from "@/constants/colors";
 import { SpendingChart } from "@/components/SpendingChart";
 
@@ -41,7 +41,7 @@ function TransactionRow({ item, onPress }: { item: Transaction; onPress: () => v
 }
 
 function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
+  const d = fromDateKey(dateStr);
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
@@ -278,6 +278,7 @@ export default function DashboardScreen() {
         {/* Action Buttons */}
         <View style={styles.actionRow}>
           <Pressable
+            accessibilityLabel="Add income"
             style={({ pressed }) => [styles.actionBtn, { borderColor: C.green }, pressed && { opacity: 0.8 }]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -288,6 +289,7 @@ export default function DashboardScreen() {
             <Text style={[styles.actionBtnText, { color: C.green }]}>Add Income</Text>
           </Pressable>
           <Pressable
+            accessibilityLabel="Add expense"
             style={({ pressed }) => [styles.actionBtn, { borderColor: C.red }, pressed && { opacity: 0.8 }]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -303,8 +305,11 @@ export default function DashboardScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Transactions</Text>
-            {transactions.length > 10 && (
-              <Pressable onPress={() => router.push("/(tabs)/transactions")}>
+            {transactions.length > 0 && (
+              <Pressable
+                accessibilityLabel="See all transactions"
+                onPress={() => router.push("/(tabs)/transactions")}
+              >
                 <Text style={styles.seeAll}>See all</Text>
               </Pressable>
             )}

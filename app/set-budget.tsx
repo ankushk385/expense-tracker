@@ -7,6 +7,7 @@ import {
   ScrollView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { AccessiblePressable as Pressable } from "@/components/AccessiblePressable";
@@ -15,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useBudgets } from "@/context/budgets";
 import { getCategoryById } from "@/constants/categories";
+import { parseAmount, sanitizeAmountInput } from "@/lib/amount";
 import C from "@/constants/colors";
 
 export default function SetBudgetScreen() {
@@ -31,10 +33,14 @@ export default function SetBudgetScreen() {
   const [error, setError] = useState("");
 
   const handleSave = async () => {
-    const amt = parseFloat(amount.replace(/,/g, ""));
-    if (!amount || isNaN(amt) || amt <= 0) {
+    const amt = parseAmount(amount);
+    if (amt === null) {
       setError("Please enter a valid budget amount");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+    if (!categoryKey) {
+      setError("No category selected");
       return;
     }
     const pct = parseInt(alertPct);
@@ -55,9 +61,18 @@ export default function SetBudgetScreen() {
   };
 
   const handleRemove = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await removeBudget(categoryKey!);
-    router.back();
+    Alert.alert("Remove Budget", `Remove the budget for ${cat?.label ?? "this category"}?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          await removeBudget(categoryKey!);
+          router.back();
+        },
+      },
+    ]);
   };
 
   const color = cat?.color ?? C.red;
@@ -93,8 +108,14 @@ export default function SetBudgetScreen() {
             placeholder="0"
             placeholderTextColor={C.mediumGray}
             value={amount}
-            onChangeText={(v) => setAmount(v.replace(/[^0-9.]/g, ""))}
-            keyboardType="numeric"
+            onChangeText={(v) => {
+              setAmount(sanitizeAmountInput(v));
+              if (error) setError("");
+            }}
+            keyboardType="decimal-pad"
+            inputMode="decimal"
+            maxLength={12}
+            accessibilityLabel="Monthly budget limit in rupees"
             autoFocus
             returnKeyType="done"
           />

@@ -1,48 +1,45 @@
 import React, { useMemo } from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { View, Text, StyleSheet, useWindowDimensions } from "react-native";
 import Svg, { Rect, Line, Text as SvgText } from "react-native-svg";
 import { useTransactions } from "@/context/transactions";
-import { toDateKey } from "@/constants/categories";
+import { fromDateKey, todayKey, toDateKey } from "@/constants/categories";
 import C from "@/constants/colors";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CHART_HEIGHT = 120;
 const CHART_PADDING = 20;
 
 function getLast7Days() {
-  const days: string[] = [];
+  const days: { key: string; label: string }[] = [];
   for (let i = 6; i >= 0; i--) {
-    const d = new Date();
+    const d = fromDateKey(todayKey());
     d.setDate(d.getDate() - i);
-    days.push(toDateKey(d));
+    days.push({
+      key: toDateKey(d),
+      label: d.toLocaleDateString("en-IN", { weekday: "short" }).slice(0, 3),
+    });
   }
   return days;
 }
 
 export function SpendingChart() {
+  const { width } = useWindowDimensions();
   const { transactions } = useTransactions();
-  const days = getLast7Days();
 
   const data = useMemo(() => {
-    return days.map((day) => {
+    return getLast7Days().map(({ key, label }) => {
       const expense = transactions
-        .filter((t) => t.type === "expense" && t.date === day)
-        .reduce((s, t) => s + t.amount, 0);
+        .filter((t) => t.type === "expense" && t.date === key)
+        .reduce((sum, t) => sum + t.amount, 0);
       const income = transactions
-        .filter((t) => t.type === "income" && t.date === day)
-        .reduce((s, t) => s + t.amount, 0);
-      return { day, expense, income };
+        .filter((t) => t.type === "income" && t.date === key)
+        .reduce((sum, t) => sum + t.amount, 0);
+      return { key, label, expense, income };
     });
-  }, [transactions, days]);
+  }, [transactions]);
 
   const maxVal = Math.max(...data.map((d) => Math.max(d.expense, d.income)), 1);
-  const chartWidth = SCREEN_WIDTH - 40 - 32;
-  const barWidth = (chartWidth - CHART_PADDING * 2) / days.length;
-
-  const dayLabels = days.map((d) => {
-    const date = new Date(d);
-    return date.toLocaleDateString("en-IN", { weekday: "short" }).slice(0, 3);
-  });
+  const chartWidth = Math.max(width - 40 - 32, 200);
+  const barWidth = (chartWidth - CHART_PADDING * 2) / data.length;
 
   return (
     <View style={styles.container}>
@@ -68,7 +65,7 @@ export function SpendingChart() {
           const incH = maxVal > 0 ? (d.income / maxVal) * CHART_HEIGHT : 0;
 
           return (
-            <React.Fragment key={d.day}>
+            <React.Fragment key={d.key}>
               <Rect
                 x={x + barWidth * 0.1}
                 y={CHART_HEIGHT - expH}
@@ -93,7 +90,7 @@ export function SpendingChart() {
                 fill={C.mediumGray}
                 fontFamily="Inter_400Regular"
               >
-                {dayLabels[i]}
+                {d.label}
               </SvgText>
             </React.Fragment>
           );

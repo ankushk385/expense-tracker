@@ -14,7 +14,8 @@ import { AccessiblePressable as Pressable } from "@/components/AccessiblePressab
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { fetch } from "expo/fetch";
-import { useTransactions } from "@/context/transactions";
+import { useTransactions, Transaction } from "@/context/transactions";
+import { getCategoryById, formatINR } from "@/constants/categories";
 import { getApiUrl } from "@/lib/query-client";
 import C from "@/constants/colors";
 
@@ -30,6 +31,79 @@ const QUICK_PROMPTS = [
   "Analyze my spending this month",
   "Am I on track with my expenses?",
 ];
+
+/**
+ * The AI coach needs the Express server (and an Anthropic key). When that
+ * isn't reachable we still answer from the local data instead of showing a
+ * dead-end error.
+ */
+function buildOfflineAnswer(
+  question: string,
+  transactions: Transaction[],
+  totals: { income: number; expenses: number; balance: number }
+) {
+  const q = question.toLowerCase();
+  const now = new Date();
+  const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const monthExpenses = transactions.filter(
+    (t) => t.type === "expense" && t.date.startsWith(monthPrefix)
+  );
+  const monthTotal = monthExpenses.reduce((sum, t) => sum + t.amount, 0);
+
+  const byCategory: Record<string, number> = {};
+  for (const t of monthExpenses) {
+    byCategory[t.category] = (byCategory[t.category] ?? 0) + t.amount;
+  }
+  const top = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0];
+
+  const parts: string[] = [];
+
+  if (top) {
+    const label = getCategoryById(top[0])?.label ?? top[0];
+    const pct = monthTotal > 0 ? Math.round((top[1] / monthTotal) * 100) : 0;
+    parts.push(
+      `Your biggest expense category this month is ${label} at ₹${formatINR(top[1])} (${pct}% of this month's spending).`
+    );
+  } else {
+    parts.push("You haven't logged any expenses this month yet.");
+  }
+
+  parts.push(
+    `This month you've spent ₹${formatINR(monthTotal)} across ${monthExpenses.length} transactions.`
+  );
+
+  const savingsRate =
+    totals.income > 0
+      ? Math.round(((totals.income - totals.expenses) / totals.income) * 100)
+      : null;
+
+  if (savingsRate !== null) {
+    if (savingsRate >= 20) {
+      parts.push(`You're saving about ${savingsRate}% of your income — that's a healthy rate.`);
+    } else if (savingsRate >= 0) {
+      parts.push(
+        `You're saving about ${savingsRate}% of your income. Aim for 20% or more where possible.`
+      );
+    } else {
+      parts.push(
+        `You've spent ₹${formatINR(Math.abs(totals.balance))} more than you've earned so far.`
+      );
+    }
+  }
+
+  if (q.includes("save")) {
+    parts.push(
+      "Tip: set a monthly budget on your top category and review recurring spends first — small subscriptions add up quickly."
+    );
+  } else if (q.includes("budget") || q.includes("track")) {
+    parts.push(
+      "Open the Budgets tab to cap your biggest categories. Alerts fire at 80% of a budget by default."
+    );
+  }
+
+  parts.push("AI server is offline right now, so this answer was generated on your device.");
+  return parts.join("\n\n");
+}
 
 function UserBubble({ content }: { content: string }) {
   return (
@@ -101,6 +175,8 @@ export default function AICoachScreen() {
         currentMonth: now.toLocaleDateString("en-IN", { month: "long", year: "numeric" }),
       };
 
+      let accumulated = "";
+
       try {
         const apiUrl = new URL("/api/ai/finance-coach", getApiUrl()).toString();
         const resp = await fetch(apiUrl, {
@@ -119,48 +195,63 @@ export default function AICoachScreen() {
           }),
         });
 
-        if (!resp.body) throw new Error("No response body");
+        if (!resp.ok || !resp.body) {
+          throw new Error(`Coach unavailable (${resp.status})`);
+        }
+
         const reader = resp.body.getReader();
         const decoder = new TextDecoder();
-        let accumulated = "";
+        let buffer = "";
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n");
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.slice(6).trim();
+          buffer += decoder.decode(value, { stream: true });
+
+          // SSE events are separated by a blank line. A network chunk can
+          // split an event in half, so keep the trailing partial event.
+          const events = buffer.split("\n\n");
+          buffer = events.pop() ?? "";
+
+          for (const event of events) {
+            for (const line of event.split("\n")) {
+              if (!line.startsWith("data:")) continue;
+              const data = line.slice(5).trim();
               if (!data) continue;
+
+              let parsed: { text?: string; done?: boolean; error?: string };
               try {
-                const parsed = JSON.parse(data);
-                if (parsed.text) {
-                  accumulated += parsed.text;
-                  setStreamingContent(accumulated);
-                  scrollToBottom();
-                } else if (parsed.done) {
-                  const aiMsg: Message = {
-                    id: (Date.now() + 1).toString(),
-                    role: "assistant",
-                    content: accumulated,
-                  };
-                  setMessages((prev) => [...prev, aiMsg]);
-                  setStreamingContent("");
-                } else if (parsed.error) {
-                  throw new Error(parsed.error);
-                }
-              } catch {}
+                parsed = JSON.parse(data);
+              } catch {
+                continue;
+              }
+
+              if (parsed.error) throw new Error(parsed.error);
+              if (parsed.text) {
+                accumulated += parsed.text;
+                setStreamingContent(accumulated);
+                scrollToBottom();
+              }
             }
           }
         }
+
+        if (!accumulated.trim()) throw new Error("Empty response");
+
+        setMessages((prev) => [
+          ...prev,
+          { id: `${Date.now()}-ai`, role: "assistant", content: accumulated },
+        ]);
+        setStreamingContent("");
       } catch {
-        const errMsg: Message = {
-          id: (Date.now() + 1).toString(),
+        // Server missing/unreachable (or no Anthropic key): answer from the
+        // data already on the device instead of showing a dead end.
+        const aiMsg: Message = {
+          id: `${Date.now()}-offline`,
           role: "assistant",
-          content: "Sorry, I couldn't process your request. Please try again.",
+          content: buildOfflineAnswer(userMsg.content, capturedTxns, capturedTotals),
         };
-        setMessages((prev) => [...prev, errMsg]);
+        setMessages((prev) => [...prev, aiMsg]);
         setStreamingContent("");
       } finally {
         setIsSending(false);
@@ -236,6 +327,7 @@ export default function AICoachScreen() {
                   {QUICK_PROMPTS.map((q, i) => (
                     <Pressable
                       key={i}
+                      accessibilityLabel={q}
                       style={({ pressed }) => [
                         styles.quickBtn,
                         pressed && { opacity: 0.8 },
@@ -270,7 +362,7 @@ export default function AICoachScreen() {
         <View
           style={[
             styles.inputContainer,
-            { paddingBottom: botPad + 12 },
+            { paddingBottom: botPad + 64 },
           ]}
         >
           <View style={styles.inputRow}>
@@ -284,6 +376,7 @@ export default function AICoachScreen() {
               maxLength={500}
               returnKeyType="default"
               editable={!isSending}
+              accessibilityLabel="Message to Finance Coach"
             />
             <Pressable
               accessibilityLabel="Send message"
