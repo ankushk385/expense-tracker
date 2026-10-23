@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TextInput,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -150,15 +151,22 @@ export default function TransactionsScreen() {
         showsVerticalScrollIndicator={false}
         scrollEnabled={!!filtered.length}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Ionicons name="receipt-outline" size={48} color={C.mediumGray} />
-            <Text style={styles.emptyText}>No transactions found</Text>
-            <Text style={styles.emptySubText}>
-              {transactions.length === 0
-                ? "Add your first transaction"
-                : "Try changing the filter"}
-            </Text>
-          </View>
+          isLoading ? (
+            <View style={styles.empty}>
+              <ActivityIndicator color={C.red} />
+              <Text style={styles.emptyText}>Loading transactions…</Text>
+            </View>
+          ) : (
+            <View style={styles.empty}>
+              <Ionicons name="receipt-outline" size={48} color={C.mediumGray} />
+              <Text style={styles.emptyText}>No transactions found</Text>
+              <Text style={styles.emptySubText}>
+                {transactions.length === 0
+                  ? "Add your first transaction"
+                  : "Try changing the filter"}
+              </Text>
+            </View>
+          )
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />

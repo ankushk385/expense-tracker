@@ -2,6 +2,11 @@ import type { Express, Request, Response } from "express";
 import Anthropic from "@anthropic-ai/sdk";
 import { chatStorage } from "./storage";
 
+function parseConversationId(value: string | string[]): number | undefined {
+  const id = Number.parseInt(Array.isArray(value) ? value[0] : value, 10);
+  return Number.isInteger(id) && id > 0 ? id : undefined;
+}
+
 const anthropic = new Anthropic({
   apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL,
@@ -22,7 +27,8 @@ export function registerChatRoutes(app: Express): void {
   // Get single conversation with messages
   app.get("/api/conversations/:id", async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseConversationId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid conversation ID" });
       const conversation = await chatStorage.getConversation(id);
       if (!conversation) {
         return res.status(404).json({ error: "Conversation not found" });
@@ -50,7 +56,8 @@ export function registerChatRoutes(app: Express): void {
   // Delete conversation
   app.delete("/api/conversations/:id", async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseConversationId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid conversation ID" });
       await chatStorage.deleteConversation(id);
       res.status(204).send();
     } catch (error) {
@@ -62,7 +69,8 @@ export function registerChatRoutes(app: Express): void {
   // Send message and get AI response (streaming)
   app.post("/api/conversations/:id/messages", async (req: Request, res: Response) => {
     try {
-      const conversationId = parseInt(req.params.id);
+      const conversationId = parseConversationId(req.params.id);
+      if (!conversationId) return res.status(400).json({ error: "Invalid conversation ID" });
       const { content } = req.body;
 
       // Save user message

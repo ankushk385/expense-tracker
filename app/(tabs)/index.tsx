@@ -210,6 +210,13 @@ export default function DashboardScreen() {
             <Text style={styles.userName}>{firstName}</Text>
           </View>
           <Pressable
+            style={styles.settingsBtn}
+            accessibilityLabel="Open settings"
+            onPress={() => router.push("/(tabs)/settings")}
+          >
+            <Ionicons name="settings-outline" size={20} color={C.lightGray} />
+          </Pressable>
+          <Pressable
             style={styles.addBtn}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -355,6 +362,16 @@ const styles = StyleSheet.create({
     backgroundColor: C.red,
     alignItems: "center",
     justifyContent: "center",
+  },
+  settingsBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: C.card2,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: "auto",
+    marginRight: 10,
   },
   balanceCard: {
     backgroundColor: C.card,

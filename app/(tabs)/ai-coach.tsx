@@ -154,7 +154,7 @@ export default function AICoachScreen() {
             }
           }
         }
-      } catch (err: any) {
+      } catch {
         const errMsg: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
@@ -166,7 +166,7 @@ export default function AICoachScreen() {
         setIsSending(false);
       }
     },
-    [isSending, transactions, totals, scrollToBottom]
+    [isSending, transactions, totalIncome, totalExpenses, balance, scrollToBottom]
   );
 
   const allMessages = [...messages];

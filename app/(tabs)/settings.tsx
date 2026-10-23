@@ -7,13 +7,17 @@ import {
   StyleSheet,
   Alert,
   Platform,
+  Switch,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import { useAuth } from "@/context/auth";
 import { useTransactions } from "@/context/transactions";
+import { useBudgetAlerts } from "@/context/budget-alerts";
 import { formatINR } from "@/constants/categories";
 import C from "@/constants/colors";
 
@@ -57,7 +61,8 @@ function SettingsRow({
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
-  const { transactions, totalIncome, totalExpenses, balance } = useTransactions();
+  const { transactions, balance, clearTransactions } = useTransactions();
+  const { enabled: budgetAlertsEnabled, setEnabled: setBudgetAlertsEnabled } = useBudgetAlerts();
   const [exporting, setExporting] = useState(false);
 
   const topInset = insets.top + (Platform.OS === "web" ? 67 : 0);
@@ -88,7 +93,7 @@ export default function SettingsScreen() {
           style: "destructive",
           onPress: async () => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            await AsyncStorage.removeItem(`@expense_tracker_txns_${user?.id}`);
+            await clearTransactions();
             Alert.alert("Done", "All transactions deleted.");
           },
         },
@@ -99,6 +104,82 @@ export default function SettingsScreen() {
   const transactionCount = transactions.length;
   const incomeCount = transactions.filter((t) => t.type === "income").length;
   const expenseCount = transactions.filter((t) => t.type === "expense").length;
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const escapeCsv = (value: string | number) =>
+        `"${String(value).replace(/"/g, '""')}"`;
+      const rows = [
+        ["Type", "Amount (INR)", "Category", "Date", "Note", "Created At"],
+        ...transactions.map((transaction) => [
+          transaction.type,
+          transaction.amount,
+          transaction.category,
+          transaction.date,
+          transaction.note,
+          transaction.createdAt,
+        ]),
+      ];
+      const csv = `\uFEFF${rows.map((row) => row.map(escapeCsv).join(",")).join("\r\n")}`;
+      const filename = `expense-tracker-${new Date().toISOString().slice(0, 10)}.csv`;
+
+      if (Platform.OS === "web") {
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      } else {
+        const directory = FileSystem.documentDirectory;
+        if (!directory) throw new Error("The device could not open a file location.");
+        const uri = `${directory}${filename}`;
+        await FileSystem.writeAsStringAsync(uri, csv, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
+        if (!(await Sharing.isAvailableAsync())) {
+          throw new Error("File sharing is not available on this device.");
+        }
+        await Sharing.shareAsync(uri, {
+          mimeType: "text/csv",
+          dialogTitle: "Export transactions",
+          UTI: "public.comma-separated-values-text",
+        });
+      }
+    } catch (error) {
+      Alert.alert(
+        "Export failed",
+        error instanceof Error ? error.message : "Could not export your transactions.",
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleBudgetAlertsToggle = async () => {
+    if (Platform.OS === "web") {
+      Alert.alert("Not available on web", "Budget notifications are available in the iOS and Android app.");
+      return;
+    }
+    try {
+      const enabled = await setBudgetAlertsEnabled(!budgetAlertsEnabled);
+      if (!enabled && !budgetAlertsEnabled) {
+        Alert.alert(
+          "Notifications not enabled",
+          "Allow notifications in your device settings to receive budget alerts.",
+        );
+      }
+    } catch (error) {
+      Alert.alert(
+        "Could not update notifications",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -158,7 +239,18 @@ export default function SettingsScreen() {
             icon="notifications-outline"
             iconColor="#FFD166"
             label="Notifications"
-            sublabel="Budget alerts & reminders"
+            sublabel={Platform.OS === "web"
+              ? "Available in the iOS and Android app"
+              : budgetAlertsEnabled ? "Budget alerts are on" : "Budget alerts are off"}
+            onPress={handleBudgetAlertsToggle}
+            rightElement={
+              <Switch
+                value={budgetAlertsEnabled}
+                style={{ pointerEvents: "none" }}
+                trackColor={{ false: C.mediumGray, true: C.green }}
+                thumbColor={C.white}
+              />
+            }
           />
         </View>
 
@@ -169,11 +261,13 @@ export default function SettingsScreen() {
             icon="cloud-download-outline"
             iconColor={C.green}
             label="Export Data"
-            sublabel="Download as CSV"
-            onPress={async () => {
+            sublabel={exporting ? "Preparing CSV…" : "Save or share transactions as CSV"}
+            onPress={() => {
+              if (exporting) return;
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              Alert.alert("Export", "Your transaction data has been prepared. On a real device, this would save a CSV file to your downloads.");
+              void handleExport();
             }}
+            rightElement={exporting ? <ActivityIndicator color={C.green} /> : undefined}
           />
           <View style={styles.divider} />
           <SettingsRow

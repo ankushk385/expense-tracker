@@ -1,8 +1,7 @@
 import React, { useMemo } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
-import Svg, { Rect, Line, Text as SvgText, Path } from "react-native-svg";
+import Svg, { Rect, Line, Text as SvgText } from "react-native-svg";
 import { useTransactions } from "@/context/transactions";
-import { formatINR } from "@/constants/categories";
 import C from "@/constants/colors";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");

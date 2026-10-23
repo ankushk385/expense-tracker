@@ -20,6 +20,7 @@ interface TransactionsContextValue {
   addTransaction: (t: Omit<Transaction, "id" | "createdAt">) => Promise<void>;
   updateTransaction: (id: string, t: Partial<Omit<Transaction, "id" | "createdAt">>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
+  clearTransactions: () => Promise<void>;
   totalIncome: number;
   totalExpenses: number;
   balance: number;
@@ -93,6 +94,10 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
     [transactions, save]
   );
 
+  const clearTransactions = useCallback(async () => {
+    await save([]);
+  }, [save]);
+
   const totalIncome = useMemo(
     () => transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0),
     [transactions]
@@ -110,11 +115,12 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
       addTransaction,
       updateTransaction,
       deleteTransaction,
+      clearTransactions,
       totalIncome,
       totalExpenses,
       balance,
     }),
-    [transactions, isLoading, addTransaction, updateTransaction, deleteTransaction, totalIncome, totalExpenses, balance]
+    [transactions, isLoading, addTransaction, updateTransaction, deleteTransaction, clearTransactions, totalIncome, totalExpenses, balance]
   );
 
   return <TransactionsContext.Provider value={value}>{children}</TransactionsContext.Provider>;

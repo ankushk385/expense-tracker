@@ -12,7 +12,7 @@ import Svg, { Rect, Circle, Text as SvgText, Line, Path, G } from "react-native-
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTransactions } from "@/context/transactions";
-import { EXPENSE_CATEGORIES, getCategoryById, formatINR } from "@/constants/categories";
+import { getCategoryById, formatINR } from "@/constants/categories";
 import C from "@/constants/colors";
 
 type Period = "week" | "month" | "3months";

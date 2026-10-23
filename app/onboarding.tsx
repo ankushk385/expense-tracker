@@ -12,6 +12,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
+  type SharedValue,
   useSharedValue,
   useAnimatedStyle,
   withTiming,
@@ -51,7 +52,7 @@ const SLIDES = [
   },
 ];
 
-function Slide({ slide, index, scrollX }: { slide: (typeof SLIDES)[0]; index: number; scrollX: Animated.SharedValue<number> }) {
+function Slide({ slide, index, scrollX }: { slide: (typeof SLIDES)[0]; index: number; scrollX: SharedValue<number> }) {
   const animStyle = useAnimatedStyle(() => {
     const opacity = interpolate(
       scrollX.value,
