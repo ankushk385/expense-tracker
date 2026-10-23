@@ -3,12 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  Pressable,
   Dimensions,
   ScrollView,
   Platform,
 } from "react-native";
 import { router } from "expo-router";
+import { AccessiblePressable as Pressable } from "@/components/AccessiblePressable";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
@@ -112,7 +112,7 @@ export default function OnboardingScreen() {
       {/* Skip */}
       <View style={styles.topBar}>
         <View />
-        <Pressable onPress={handleSkip} style={styles.skipBtn}>
+        <Pressable accessibilityLabel="Skip onboarding" onPress={handleSkip} style={styles.skipBtn}>
           <Text style={styles.skipText}>Skip</Text>
         </Pressable>
       </View>
@@ -149,6 +149,7 @@ export default function OnboardingScreen() {
 
       {/* CTA */}
       <Pressable
+        accessibilityLabel={currentIndex === SLIDES.length - 1 ? "Get started" : "Continue onboarding"}
         style={({ pressed }) => [styles.ctaBtn, pressed && { opacity: 0.85 }]}
         onPress={handleNext}
       >

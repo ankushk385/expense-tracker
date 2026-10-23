@@ -2,7 +2,6 @@ import React, { useState, useRef, useCallback } from "react";
 import {
   View,
   Text,
-  Pressable,
   StyleSheet,
   FlatList,
   TextInput,
@@ -11,6 +10,7 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { AccessiblePressable as Pressable } from "@/components/AccessiblePressable";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { fetch } from "expo/fetch";
@@ -186,6 +186,7 @@ export default function AICoachScreen() {
         </View>
         {messages.length > 0 && (
           <Pressable
+            accessibilityLabel="Clear conversation"
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               setMessages([]);
@@ -285,6 +286,7 @@ export default function AICoachScreen() {
               editable={!isSending}
             />
             <Pressable
+              accessibilityLabel="Send message"
               style={({ pressed }) => [
                 styles.sendBtn,
                 {

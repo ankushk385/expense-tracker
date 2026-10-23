@@ -2,12 +2,12 @@ import React, { useMemo } from "react";
 import {
   View,
   Text,
-  Pressable,
   StyleSheet,
   FlatList,
   Platform,
 } from "react-native";
 import { router } from "expo-router";
+import { AccessiblePressable as Pressable } from "@/components/AccessiblePressable";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";

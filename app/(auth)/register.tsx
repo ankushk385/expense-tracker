@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  Pressable,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -11,6 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
+import { AccessiblePressable as Pressable } from "@/components/AccessiblePressable";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -71,7 +71,7 @@ export default function RegisterScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topRow}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={22} color={C.offWhite} />
           </Pressable>
         </View>
@@ -107,7 +107,7 @@ export default function RegisterScreen() {
                   returnKeyType="next"
                 />
                 {field.secure && (
-                  <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+                  <Pressable accessibilityLabel={showPassword ? "Hide password" : "Show password"} onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
                     <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color={C.lightGray} />
                   </Pressable>
                 )}

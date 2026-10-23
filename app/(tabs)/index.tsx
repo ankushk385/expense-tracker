@@ -3,11 +3,11 @@ import {
   View,
   Text,
   ScrollView,
-  Pressable,
   StyleSheet,
   Platform,
 } from "react-native";
 import { router } from "expo-router";
+import { AccessiblePressable as Pressable } from "@/components/AccessiblePressable";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -24,6 +24,7 @@ function TransactionRow({ item, onPress }: { item: Transaction; onPress: () => v
   const isIncome = item.type === "income";
   return (
     <Pressable
+      accessibilityLabel={`${isIncome ? "Income" : "Expense"}: ${cat?.label ?? item.category}, ₹${formatINR(item.amount)}`}
       style={({ pressed }) => [styles.txnRow, pressed && { opacity: 0.7 }]}
       onPress={onPress}
     >
@@ -161,6 +162,7 @@ function useSmartInsights(
 function InsightCard({ insight }: { insight: Insight }) {
   return (
     <Pressable
+      accessibilityLabel={insight.title}
       style={[styles.insightCard, { borderLeftColor: insight.color, borderLeftWidth: 3 }]}
       onPress={() => {
         if (insight.action) {
@@ -217,6 +219,7 @@ export default function DashboardScreen() {
             <Ionicons name="settings-outline" size={20} color={C.lightGray} />
           </Pressable>
           <Pressable
+            accessibilityLabel="Add a transaction"
             style={styles.addBtn}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

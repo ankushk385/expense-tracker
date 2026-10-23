@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import Svg, { Rect, Line, Text as SvgText } from "react-native-svg";
 import { useTransactions } from "@/context/transactions";
+import { toDateKey } from "@/constants/categories";
 import C from "@/constants/colors";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -13,7 +14,7 @@ function getLast7Days() {
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    days.push(d.toISOString().split("T")[0]);
+    days.push(toDateKey(d));
   }
   return days;
 }

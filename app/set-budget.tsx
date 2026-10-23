@@ -3,13 +3,13 @@ import {
   View,
   Text,
   TextInput,
-  Pressable,
   StyleSheet,
   ScrollView,
   Platform,
   ActivityIndicator,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { AccessiblePressable as Pressable } from "@/components/AccessiblePressable";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -80,7 +80,7 @@ export default function SetBudgetScreen() {
             <Text style={styles.title}>Set Budget</Text>
             <Text style={styles.subtitle}>{cat?.label ?? categoryKey}</Text>
           </View>
-          <Pressable style={styles.closeBtn} onPress={() => router.back()}>
+          <Pressable accessibilityLabel="Close budget form" style={styles.closeBtn} onPress={() => router.back()}>
             <Ionicons name="close" size={18} color={C.lightGray} />
           </Pressable>
         </View>
@@ -104,6 +104,8 @@ export default function SetBudgetScreen() {
         <View style={styles.pctRow}>
           {[50, 75, 80, 90].map((p) => (
             <Pressable
+              accessibilityRole="radio"
+              accessibilityState={{ checked: alertPct === p.toString() }}
               key={p}
               style={[
                 styles.pctBtn,

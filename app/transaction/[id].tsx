@@ -2,12 +2,12 @@ import React from "react";
 import {
   View,
   Text,
-  Pressable,
   StyleSheet,
   Alert,
   Platform,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { AccessiblePressable as Pressable } from "@/components/AccessiblePressable";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -51,7 +51,7 @@ export default function TransactionDetailScreen() {
     return (
       <View style={styles.notFound}>
         <Text style={styles.notFoundText}>Transaction not found</Text>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>Go Back</Text>
         </Pressable>
       </View>
@@ -95,7 +95,7 @@ export default function TransactionDetailScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Transaction</Text>
-        <Pressable style={styles.closeBtn} onPress={() => router.back()}>
+        <Pressable accessibilityLabel="Close transaction details" style={styles.closeBtn} onPress={() => router.back()}>
           <Ionicons name="close" size={20} color={C.lightGray} />
         </Pressable>
       </View>

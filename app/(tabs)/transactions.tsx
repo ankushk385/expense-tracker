@@ -3,13 +3,13 @@ import {
   View,
   Text,
   FlatList,
-  Pressable,
   StyleSheet,
   TextInput,
   Platform,
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
+import { AccessiblePressable as Pressable } from "@/components/AccessiblePressable";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -100,7 +100,7 @@ export default function TransactionsScreen() {
           onChangeText={setSearch}
         />
         {search ? (
-          <Pressable onPress={() => setSearch("")}>
+          <Pressable accessibilityLabel="Clear transaction search" onPress={() => setSearch("")}>
             <Ionicons name="close-circle" size={16} color={C.mediumGray} />
           </Pressable>
         ) : null}

@@ -51,7 +51,7 @@ function RootLayoutNav() {
     const inOnboarding = segments[0] === "onboarding";
     if (user && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)");
-    } else if (!user && !onboarding.complete && !inOnboarding) {
+    } else if (!user && !onboarding.complete && !inOnboarding && !inAuthGroup) {
       router.replace("/onboarding");
     } else if (!user && onboarding.complete && !inAuthGroup) {
       router.replace("/(auth)/login");

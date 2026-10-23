@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  Pressable,
   StyleSheet,
   ScrollView,
   Platform,
@@ -14,15 +13,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useTransactions, TransactionType } from "@/context/transactions";
+import { AccessiblePressable as Pressable } from "@/components/AccessiblePressable";
 import {
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
   Category,
+  fromDateKey,
+  toDateKey,
 } from "@/constants/categories";
 import C from "@/constants/colors";
 
 function formatDisplayDate(dateStr: string) {
-  const d = new Date(dateStr);
+  const d = fromDateKey(dateStr);
   return d.toLocaleDateString("en-IN", {
     day: "numeric",
     month: "long",
@@ -45,6 +47,8 @@ function CategoryPicker({
         const isSelected = cat.key === selected;
         return (
           <Pressable
+            accessibilityLabel={`Select ${cat.label} category`}
+            accessibilityState={{ selected: isSelected }}
             key={cat.key}
             style={[
               styles.catItem,
@@ -89,7 +93,7 @@ export default function EditTransactionScreen() {
   const [type] = useState<TransactionType>(original?.type ?? "expense");
   const [amount, setAmount] = useState(original?.amount?.toString() ?? "");
   const [category, setCategory] = useState(original?.category ?? "");
-  const [date, setDate] = useState(original?.date ?? new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(original?.date ?? toDateKey(new Date()));
   const [note, setNote] = useState(original?.note ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -148,7 +152,7 @@ export default function EditTransactionScreen() {
       >
         <View style={styles.sheetHeader}>
           <Text style={styles.sheetTitle}>Edit Transaction</Text>
-          <Pressable style={styles.closeBtn} onPress={() => router.back()}>
+          <Pressable accessibilityLabel="Close transaction form" style={styles.closeBtn} onPress={() => router.back()}>
             <Ionicons name="close" size={20} color={C.lightGray} />
           </Pressable>
         </View>
@@ -194,11 +198,12 @@ export default function EditTransactionScreen() {
           <Text style={styles.sectionLabel}>Date</Text>
           <View style={styles.dateRow}>
             <Pressable
+              accessibilityLabel="Previous date"
               style={styles.dateBtn}
               onPress={() => {
-                const d = new Date(date);
+                const d = fromDateKey(date);
                 d.setDate(d.getDate() - 1);
-                setDate(d.toISOString().split("T")[0]);
+                setDate(toDateKey(d));
                 Haptics.selectionAsync();
               }}
             >
@@ -206,13 +211,14 @@ export default function EditTransactionScreen() {
             </Pressable>
             <Text style={styles.dateText}>{formatDisplayDate(date)}</Text>
             <Pressable
+              accessibilityLabel="Next date"
               style={styles.dateBtn}
               onPress={() => {
-                const d = new Date(date);
+                const d = fromDateKey(date);
                 const t = new Date();
                 if (d < t) {
                   d.setDate(d.getDate() + 1);
-                  setDate(d.toISOString().split("T")[0]);
+                  setDate(toDateKey(d));
                   Haptics.selectionAsync();
                 }
               }}

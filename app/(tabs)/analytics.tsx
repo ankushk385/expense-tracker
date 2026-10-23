@@ -3,16 +3,17 @@ import {
   View,
   Text,
   ScrollView,
-  Pressable,
   StyleSheet,
   Platform,
   Dimensions,
 } from "react-native";
 import Svg, { Rect, Circle, Text as SvgText, Line, Path, G } from "react-native-svg";
+import { AccessiblePressable as Pressable } from "@/components/AccessiblePressable";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTransactions } from "@/context/transactions";
-import { getCategoryById, formatINR } from "@/constants/categories";
+import { getCategoryById, formatINR, toDateKey } from "@/constants/categories";
+import type { Transaction } from "@/context/transactions";
 import C from "@/constants/colors";
 
 type Period = "week" | "month" | "3months";
@@ -31,7 +32,25 @@ function getDateRange(period: Period): [Date, Date] {
   return [start, end];
 }
 
-function groupByMonth(transactions: any[], period: Period) {
+function groupByMonth(transactions: Transaction[], period: Period) {
+  if (period === "week") {
+    return Array.from({ length: 7 }, (_, index) => {
+      const day = new Date();
+      day.setHours(0, 0, 0, 0);
+      day.setDate(day.getDate() - 6 + index);
+      const key = toDateKey(day);
+      return {
+        label: day.toLocaleDateString("en-IN", { weekday: "short" }),
+        income: transactions
+          .filter((transaction) => transaction.type === "income" && transaction.date === key)
+          .reduce((sum, transaction) => sum + transaction.amount, 0),
+        expense: transactions
+          .filter((transaction) => transaction.type === "expense" && transaction.date === key)
+          .reduce((sum, transaction) => sum + transaction.amount, 0),
+      };
+    });
+  }
+
   const [start, end] = getDateRange(period);
   const months: { label: string; income: number; expense: number }[] = [];
   const cur = new Date(start);
@@ -89,19 +108,30 @@ function PieChart({ data }: { data: { label: string; value: number; color: strin
   );
 }
 
-function CategoryBreakdown({ transactions }: { transactions: any[] }) {
+function CategoryBreakdown({ transactions }: { transactions: Transaction[] }) {
   const byCategory = useMemo(() => {
     const map: Record<string, number> = {};
     transactions.filter((t) => t.type === "expense").forEach((t) => {
       map[t.category] = (map[t.category] ?? 0) + t.amount;
     });
-    return Object.entries(map)
+    const ranked = Object.entries(map)
       .map(([key, total]) => ({ key, total, cat: getCategoryById(key) }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 6);
+      .sort((a, b) => b.total - a.total);
+    const topCategories = ranked.slice(0, 6);
+    const remainingTotal = ranked.slice(6).reduce((sum, category) => sum + category.total, 0);
+    if (remainingTotal > 0) {
+      topCategories.push({
+        key: "__remaining_categories__",
+        total: remainingTotal,
+        cat: undefined,
+      });
+    }
+    return topCategories;
   }, [transactions]);
 
-  const totalExpenses = byCategory.reduce((s, c) => s + c.total, 0);
+  const totalExpenses = transactions
+    .filter((transaction) => transaction.type === "expense")
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
 
   if (byCategory.length === 0) {
     return (
@@ -112,7 +142,7 @@ function CategoryBreakdown({ transactions }: { transactions: any[] }) {
   }
 
   const pieData = byCategory.map(({ key, total, cat }) => ({
-    label: cat?.label ?? key,
+    label: cat?.label ?? (key === "__remaining_categories__" ? "Other categories" : key),
     value: total,
     color: cat?.color ?? C.mediumGray,
   }));
@@ -125,10 +155,11 @@ function CategoryBreakdown({ transactions }: { transactions: any[] }) {
           {byCategory.map(({ key, total, cat }) => {
             const pct = totalExpenses > 0 ? Math.round((total / totalExpenses) * 100) : 0;
             const color = cat?.color ?? C.mediumGray;
+            const label = cat?.label ?? (key === "__remaining_categories__" ? "Other categories" : key);
             return (
               <View key={key} style={styles.pieLegendItem}>
                 <View style={[styles.bkDot, { backgroundColor: color }]} />
-                <Text style={styles.pieLegendLabel} numberOfLines={1}>{cat?.label ?? key}</Text>
+                <Text style={styles.pieLegendLabel} numberOfLines={1}>{label}</Text>
                 <Text style={[styles.pieLegendPct, { color }]}>{pct}%</Text>
               </View>
             );
@@ -139,10 +170,11 @@ function CategoryBreakdown({ transactions }: { transactions: any[] }) {
         {byCategory.map(({ key, total, cat }) => {
           const pct = totalExpenses > 0 ? (total / totalExpenses) * 100 : 0;
           const color = cat?.color ?? C.mediumGray;
+          const label = cat?.label ?? (key === "__remaining_categories__" ? "Other categories" : key);
           return (
             <View key={key} style={styles.bkRow}>
               <View style={[styles.bkDot, { backgroundColor: color }]} />
-              <Text style={styles.bkLabel} numberOfLines={1}>{cat?.label ?? key}</Text>
+              <Text style={styles.bkLabel} numberOfLines={1}>{label}</Text>
               <View style={styles.bkBarWrap}>
                 <View style={[styles.bkBar, { width: `${Math.max(pct, 2)}%` as any, backgroundColor: color }]} />
               </View>
@@ -204,6 +236,7 @@ export default function AnalyticsScreen() {
           {(["week", "month", "3months"] as Period[]).map((p) => (
             <Pressable
               key={p}
+              accessibilityState={{ selected: period === p }}
               style={[styles.periodBtn, period === p && styles.periodBtnActive]}
               onPress={() => setPeriod(p)}
             >

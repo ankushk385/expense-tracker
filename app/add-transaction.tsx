@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  Pressable,
   StyleSheet,
   ScrollView,
   Platform,
@@ -14,15 +13,22 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useTransactions, TransactionType } from "@/context/transactions";
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, Category } from "@/constants/categories";
+import { AccessiblePressable as Pressable } from "@/components/AccessiblePressable";
+import {
+  EXPENSE_CATEGORIES,
+  INCOME_CATEGORIES,
+  Category,
+  fromDateKey,
+  toDateKey,
+} from "@/constants/categories";
 import C from "@/constants/colors";
 
 function today() {
-  return new Date().toISOString().split("T")[0];
+  return toDateKey(new Date());
 }
 
 function formatDisplayDate(dateStr: string) {
-  const d = new Date(dateStr);
+  const d = fromDateKey(dateStr);
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 }
 
@@ -41,6 +47,8 @@ function CategoryPicker({
         const isSelected = cat.key === selected;
         return (
           <Pressable
+            accessibilityLabel={`Select ${cat.label} category`}
+            accessibilityState={{ selected: isSelected }}
             key={cat.key}
             style={[
               styles.catItem,
@@ -127,6 +135,7 @@ export default function AddTransactionScreen() {
         <View style={styles.sheetHeader}>
           <Text style={styles.sheetTitle}>New Transaction</Text>
           <Pressable
+            accessibilityLabel="Close transaction form"
             style={styles.closeBtn}
             onPress={() => router.back()}
           >
@@ -137,6 +146,8 @@ export default function AddTransactionScreen() {
         {/* Type Toggle */}
         <View style={styles.typeToggle}>
           <Pressable
+            accessibilityLabel="Select expense transaction type"
+            accessibilityState={{ selected: !isIncome }}
             style={[styles.typeBtn, !isIncome && { backgroundColor: C.redDim, borderColor: C.red }]}
             onPress={() => {
               Haptics.selectionAsync();
@@ -148,6 +159,8 @@ export default function AddTransactionScreen() {
             <Text style={[styles.typeBtnText, !isIncome && { color: C.red }]}>Expense</Text>
           </Pressable>
           <Pressable
+            accessibilityLabel="Select income transaction type"
+            accessibilityState={{ selected: isIncome }}
             style={[styles.typeBtn, isIncome && { backgroundColor: C.greenDim, borderColor: C.green }]}
             onPress={() => {
               Haptics.selectionAsync();
@@ -186,11 +199,12 @@ export default function AddTransactionScreen() {
           <Text style={styles.sectionLabel}>Date</Text>
           <View style={styles.dateRow}>
             <Pressable
+              accessibilityLabel="Previous date"
               style={styles.dateBtn}
               onPress={() => {
-                const d = new Date(date);
+                const d = fromDateKey(date);
                 d.setDate(d.getDate() - 1);
-                setDate(d.toISOString().split("T")[0]);
+                setDate(toDateKey(d));
                 Haptics.selectionAsync();
               }}
             >
@@ -198,13 +212,14 @@ export default function AddTransactionScreen() {
             </Pressable>
             <Text style={styles.dateText}>{formatDisplayDate(date)}</Text>
             <Pressable
+              accessibilityLabel="Next date"
               style={styles.dateBtn}
               onPress={() => {
-                const d = new Date(date);
+                const d = fromDateKey(date);
                 const t = new Date();
                 if (d < t) {
                   d.setDate(d.getDate() + 1);
-                  setDate(d.toISOString().split("T")[0]);
+                  setDate(toDateKey(d));
                   Haptics.selectionAsync();
                 }
               }}
