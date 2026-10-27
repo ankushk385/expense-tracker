@@ -19,7 +19,7 @@ import C from "@/constants/colors";
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
-  const { register } = useAuth();
+  const { register, signInWithGoogle } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -57,6 +57,18 @@ export default function RegisterScreen() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch (e: any) {
+      setError(e.message ?? "Google sign-in failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.root}
@@ -73,6 +85,16 @@ export default function RegisterScreen() {
         <View style={styles.topRow}>
           <Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={22} color={C.offWhite} />
+          </Pressable>
+
+          <Pressable
+            accessibilityLabel="Continue with Google"
+            style={({ pressed }) => [styles.googleBtn, pressed && styles.pressed]}
+            onPress={handleGoogleSignIn}
+            disabled={loading}
+          >
+            <Ionicons name="logo-google" size={19} color={C.offWhite} />
+            <Text style={styles.googleBtnText}>Continue with Google</Text>
           </Pressable>
         </View>
 
@@ -249,6 +271,21 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 16,
     color: C.white,
+  },
+  googleBtn: {
+    borderRadius: 14,
+    height: 52,
+    borderWidth: 1,
+    borderColor: C.border,
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  googleBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 15,
+    color: C.offWhite,
   },
   footer: {
     flexDirection: "row",

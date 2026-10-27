@@ -23,7 +23,12 @@ export function sanitizeAmountInput(raw: string): string {
   let [integer, decimals] = cleaned.split(".");
   integer = (integer ?? "").slice(0, MAX_INTEGER_DIGITS);
   if (decimals !== undefined) {
-    return `${integer}.${decimals.slice(0, 2)}`;
+    const truncated = decimals.slice(0, 2);
+    if (truncated.length === 2 && truncated.endsWith("0")) {
+      const normalized = truncated.replace(/0+$/, "");
+      return normalized ? `${integer}.${normalized}` : integer;
+    }
+    return `${integer}.${truncated}`;
   }
   return integer;
 }

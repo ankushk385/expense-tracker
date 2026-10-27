@@ -19,7 +19,7 @@ import C from "@/constants/colors";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const { login } = useAuth();
+  const { login, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -40,6 +40,18 @@ export default function LoginScreen() {
     } catch (e: any) {
       setError(e.message ?? "Login failed");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch (e: any) {
+      setError(e.message ?? "Google sign-in failed");
     } finally {
       setLoading(false);
     }
@@ -136,6 +148,16 @@ export default function LoginScreen() {
             ) : (
               <Text style={styles.loginBtnText}>Login</Text>
             )}
+          </Pressable>
+
+          <Pressable
+            accessibilityLabel="Continue with Google"
+            style={({ pressed }) => [styles.googleBtn, pressed && styles.pressed]}
+            onPress={handleGoogleSignIn}
+            disabled={loading}
+          >
+            <Ionicons name="logo-google" size={19} color={C.offWhite} />
+            <Text style={styles.googleBtnText}>Continue with Google</Text>
           </Pressable>
         </View>
 
@@ -242,6 +264,21 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 16,
     color: C.white,
+  },
+  googleBtn: {
+    borderRadius: 14,
+    height: 52,
+    borderWidth: 1,
+    borderColor: C.border,
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  googleBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 15,
+    color: C.offWhite,
   },
   footer: {
     flexDirection: "row",

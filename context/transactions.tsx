@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "./auth";
+import {
+  removeAllTransactions,
+  removeTransaction,
+  saveTransaction,
+  syncTransactions,
+} from "@/lib/expense-data";
 
 export type TransactionType = "income" | "expense";
 
@@ -46,15 +52,23 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
     (async () => {
       setIsLoading(true);
       try {
-        const raw = await AsyncStorage.getItem(storageKey(user.id));
-        if (raw) setTransactions(JSON.parse(raw));
-        else setTransactions([]);
-      } catch {
+        let raw = await AsyncStorage.getItem(storageKey(user.id));
+        if (!raw) {
+          const legacyId = await AsyncStorage.getItem(`@expense_tracker_legacy_user_id_${user.id}`);
+          if (legacyId) raw = await AsyncStorage.getItem(storageKey(legacyId));
+        }
+        const local: Transaction[] = raw ? JSON.parse(raw) : [];
+        setTransactions(local);
+        const synced = await syncTransactions(user.id, local);
+        setTransactions(synced);
+        await AsyncStorage.setItem(storageKey(user.id), JSON.stringify(synced));
+      } catch (error) {
+        console.warn("Transaction cloud sync failed; using local data.", error);
       } finally {
         setIsLoading(false);
       }
     })();
-  }, [user?.id]);
+  }, [user]);
 
   const save = useCallback(
     async (updated: Transaction[]) => {
@@ -62,7 +76,7 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
       await AsyncStorage.setItem(storageKey(user.id), JSON.stringify(updated));
       setTransactions(updated);
     },
-    [user?.id]
+    [user]
   );
 
   const addTransaction = useCallback(
@@ -74,28 +88,33 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
       };
       const updated = [newTxn, ...transactions];
       await save(updated);
+      if (user) await saveTransaction(user.id, newTxn);
     },
-    [transactions, save]
+    [transactions, save, user]
   );
 
   const updateTransaction = useCallback(
     async (id: string, partial: Partial<Omit<Transaction, "id" | "createdAt">>) => {
       const updated = transactions.map((t) => (t.id === id ? { ...t, ...partial } : t));
       await save(updated);
+      const changed = updated.find(transaction => transaction.id === id);
+      if (user && changed) await saveTransaction(user.id, changed);
     },
-    [transactions, save]
+    [transactions, save, user]
   );
 
   const deleteTransaction = useCallback(
     async (id: string) => {
       const updated = transactions.filter((t) => t.id !== id);
       await save(updated);
+      await removeTransaction(id);
     },
     [transactions, save]
   );
 
   const clearTransactions = useCallback(async () => {
     await save([]);
+    await removeAllTransactions();
   }, [save]);
 
   const totalIncome = useMemo(

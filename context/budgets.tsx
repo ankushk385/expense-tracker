@@ -9,6 +9,11 @@ import React, {
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "./auth";
+import {
+  removeBudget as removeCloudBudget,
+  saveBudget,
+  syncBudgets,
+} from "@/lib/expense-data";
 
 export interface Budget {
   id: string;
@@ -45,15 +50,23 @@ export function BudgetsProvider({ children }: { children: ReactNode }) {
     (async () => {
       setIsLoading(true);
       try {
-        const raw = await AsyncStorage.getItem(storageKey(user.id));
-        if (raw) setBudgets(JSON.parse(raw));
-        else setBudgets([]);
-      } catch {
+        let raw = await AsyncStorage.getItem(storageKey(user.id));
+        if (!raw) {
+          const legacyId = await AsyncStorage.getItem(`@expense_tracker_legacy_user_id_${user.id}`);
+          if (legacyId) raw = await AsyncStorage.getItem(storageKey(legacyId));
+        }
+        const local: Budget[] = raw ? JSON.parse(raw) : [];
+        setBudgets(local);
+        const synced = await syncBudgets(user.id, local);
+        setBudgets(synced);
+        await AsyncStorage.setItem(storageKey(user.id), JSON.stringify(synced));
+      } catch (error) {
+        console.warn("Budget cloud sync failed; using local data.", error);
       } finally {
         setIsLoading(false);
       }
     })();
-  }, [user?.id]);
+  }, [user]);
 
   const save = useCallback(
     async (updated: Budget[]) => {
@@ -61,7 +74,7 @@ export function BudgetsProvider({ children }: { children: ReactNode }) {
       await AsyncStorage.setItem(storageKey(user.id), JSON.stringify(updated));
       setBudgets(updated);
     },
-    [user?.id]
+    [user]
   );
 
   const setBudget = useCallback(
@@ -82,14 +95,17 @@ export function BudgetsProvider({ children }: { children: ReactNode }) {
         updated = [...budgets, newBudget];
       }
       await save(updated);
+      const changed = updated.find(budget => budget.categoryKey === categoryKey);
+      if (user && changed) await saveBudget(user.id, changed);
     },
-    [budgets, save]
+    [budgets, save, user]
   );
 
   const removeBudget = useCallback(
     async (categoryKey: string) => {
       const updated = budgets.filter((b) => b.categoryKey !== categoryKey);
       await save(updated);
+      await removeCloudBudget(categoryKey);
     },
     [budgets, save]
   );
