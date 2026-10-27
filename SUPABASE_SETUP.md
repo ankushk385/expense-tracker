@@ -49,14 +49,14 @@ The Google secret stays only in Supabase.
 Configure the preview environment:
 
 ```bash
-npx eas-cli env:create --environment preview --name EXPO_PUBLIC_SUPABASE_URL --value https://YOUR_PROJECT_REF.supabase.co --visibility plaintext
-npx eas-cli env:create --environment preview --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value YOUR_PUBLISHABLE_KEY --visibility plaintext
+npx eas-cli@latest env:set --environment preview --name EXPO_PUBLIC_SUPABASE_URL --value https://YOUR_PROJECT_REF.supabase.co --visibility plaintext
+npx eas-cli@latest env:set --environment preview --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value YOUR_PUBLISHABLE_KEY --visibility plaintext
 ```
 
 Build the downloadable APK:
 
 ```bash
-npx eas-cli build --platform android --profile preview
+npx eas-cli@latest build --platform android --profile preview
 ```
 
 ## Verification checklist
