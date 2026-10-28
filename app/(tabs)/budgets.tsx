@@ -102,7 +102,7 @@ function EmptyCatCard({ cat }: { cat: (typeof EXPENSE_CATEGORIES)[0] }) {
       <View style={[styles.catIcon, { backgroundColor: cat.color + "11" }]}>
         <Ionicons name={cat.icon as any} size={18} color={cat.color + "88"} />
       </View>
-      <Text style={styles.emptyCatName}>{cat.label}</Text>
+      <Text numberOfLines={2} style={styles.emptyCatName}>{cat.label}</Text>
       <View style={styles.plusCircle}>
         <Ionicons name="add" size={14} color={C.lightGray} />
       </View>
@@ -229,7 +229,7 @@ export default function BudgetsScreen() {
               <Ionicons name="wallet-outline" size={48} color={C.mediumGray} />
               <Text style={styles.emptyHeroTitle}>No budgets yet</Text>
               <Text style={styles.emptyHeroSub}>
-                Tap any category above to set a monthly budget
+                Choose a category below to set a monthly budget
               </Text>
             </View>
           ) : null
@@ -309,20 +309,34 @@ const styles = StyleSheet.create({
   pctText: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.lightGray },
   remainText: { fontFamily: "Inter_500Medium", fontSize: 12 },
   overText: { fontFamily: "Inter_500Medium", fontSize: 12, color: C.red },
-  emptyCatGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  emptyCard: {
+  emptyCatGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: 12,
+  },
+  emptyCard: {
+    width: "48%",
+    minHeight: 116,
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    justifyContent: "center",
+    gap: 9,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
     backgroundColor: C.card,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: C.border,
-    marginBottom: 2,
+    position: "relative",
   },
-  emptyCatName: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.lightGray, flex: 1 },
+  emptyCatName: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    lineHeight: 18,
+    color: C.offWhite,
+    textAlign: "center",
+    minHeight: 36,
+  },
   plusCircle: {
     width: 22,
     height: 22,
@@ -331,6 +345,9 @@ const styles = StyleSheet.create({
     borderColor: C.border,
     alignItems: "center",
     justifyContent: "center",
+    position: "absolute",
+    right: 10,
+    top: 10,
   },
   emptyHero: { alignItems: "center", paddingVertical: 40, gap: 8 },
   emptyHeroTitle: { fontFamily: "Inter_600SemiBold", fontSize: 18, color: C.offWhite },

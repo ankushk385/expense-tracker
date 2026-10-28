@@ -1,0 +1,3 @@
+-- This migration is owned by the StandUp Companion repository and is already
+-- applied to the shared Supabase project. Keeping its version here allows the
+-- Expense Tracker migrations to follow the shared project's migration history.
