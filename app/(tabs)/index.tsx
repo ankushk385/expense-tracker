@@ -16,10 +16,13 @@ import { useAuth } from "@/context/auth";
 import { useBudgets } from "@/context/budgets";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { getCategoryById, formatINR, fromDateKey } from "@/constants/categories";
-import C from "@/constants/colors";
+import { ThemeColors } from "@/constants/colors";
+import { useAppTheme } from "@/context/theme";
 import { SpendingChart } from "@/components/SpendingChart";
 
 function TransactionRow({ item, onPress }: { item: Transaction; onPress: () => void }) {
+  const { colors: C } = useAppTheme();
+  const styles = useMemo(() => createStyles(C), [C]);
   const cat = getCategoryById(item.category);
   const isIncome = item.type === "income";
   return (
@@ -59,6 +62,7 @@ function useSmartInsights(
   transactions: Transaction[],
   budgets: ReturnType<typeof useBudgets>["budgets"]
 ): Insight[] {
+  const { colors: C } = useAppTheme();
   return useMemo(() => {
     const insights: Insight[] = [];
     const now = new Date();
@@ -156,10 +160,12 @@ function useSmartInsights(
     }
 
     return insights.slice(0, 3);
-  }, [transactions, budgets]);
+  }, [transactions, budgets, C]);
 }
 
 function InsightCard({ insight }: { insight: Insight }) {
+  const { colors: C } = useAppTheme();
+  const styles = useMemo(() => createStyles(C), [C]);
   return (
     <Pressable
       accessibilityLabel={insight.title}
@@ -186,6 +192,8 @@ function InsightCard({ insight }: { insight: Insight }) {
 }
 
 export default function DashboardScreen() {
+  const { colors: C, isDark } = useAppTheme();
+  const styles = useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { transactions, totalIncome, totalExpenses, balance, isLoading } = useTransactions();
@@ -231,9 +239,9 @@ export default function DashboardScreen() {
         </View>
 
         {/* Balance Card */}
-        <View style={styles.balanceCard}>
+        <View style={[styles.balanceCard, !isDark && styles.lightShadow]}>
           <Text style={styles.balanceLabel}>Total Balance</Text>
-          <Text style={[styles.balanceAmount, { color: balance < 0 ? C.red : C.white }]}>
+          <Text style={[styles.balanceAmount, { color: balance < 0 ? C.red : C.text }]}> 
             ₹{formatINR(Math.abs(balance))}
           </Text>
           <View style={styles.kpiRow}>
@@ -351,7 +359,7 @@ function getGreeting() {
   return "Evening";
 }
 
-const styles = StyleSheet.create({
+const createStyles = (C: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.black },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20 },
@@ -362,7 +370,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   greeting: { fontFamily: "Inter_400Regular", fontSize: 14, color: C.lightGray },
-  userName: { fontFamily: "Inter_700Bold", fontSize: 26, color: C.white, letterSpacing: -0.5 },
+  userName: { fontFamily: "Inter_700Bold", fontSize: 26, color: C.text, letterSpacing: -0.5 },
   addBtn: {
     width: 44,
     height: 44,
@@ -389,6 +397,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
   },
+  lightShadow: { shadowColor: C.shadow, shadowOpacity: 0.07, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
   balanceLabel: {
     fontFamily: "Inter_400Regular",
     fontSize: 13,
@@ -439,7 +448,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
-  sectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: C.white },
+  sectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: C.text },
   seeAll: { fontFamily: "Inter_500Medium", fontSize: 13, color: C.red },
   emptyState: {
     alignItems: "center",

@@ -21,31 +21,29 @@ import Animated, {
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import C from "@/constants/colors";
+import { ThemeColors } from "@/constants/colors";
+import { useAppTheme } from "@/context/theme";
 
 const { width: SW } = Dimensions.get("window");
 
 const SLIDES = [
   {
     icon: "wallet" as const,
-    iconColor: C.red,
-    bgColor: C.redDim,
+    accent: "expense" as const,
     title: "Track Every Rupee",
     subtitle:
       "Add income and expenses in seconds. Know exactly where your money goes with beautiful charts and insights.",
   },
   {
     icon: "pie-chart" as const,
-    iconColor: "#4CC9F0",
-    bgColor: "rgba(76,201,240,0.15)",
+    accent: "blue" as const,
     title: "Smart Analytics",
     subtitle:
       "See spending by category, compare months, and spot trends before they become problems.",
   },
   {
     icon: "sparkles" as const,
-    iconColor: C.green,
-    bgColor: C.greenDim,
+    accent: "income" as const,
     title: "AI Finance Coach",
     subtitle:
       "Ask your personal AI anything about your finances. Get insights, tips, and answers in plain English.",
@@ -53,6 +51,10 @@ const SLIDES = [
 ];
 
 function Slide({ slide, index, scrollX }: { slide: (typeof SLIDES)[0]; index: number; scrollX: SharedValue<number> }) {
+  const { colors: C } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
+  const iconColor = C[slide.accent];
+  const bgColor = slide.accent === "expense" ? C.expenseSoft : slide.accent === "income" ? C.incomeSoft : C.blue + "20";
   const animStyle = useAnimatedStyle(() => {
     const opacity = interpolate(
       scrollX.value,
@@ -71,8 +73,8 @@ function Slide({ slide, index, scrollX }: { slide: (typeof SLIDES)[0]; index: nu
 
   return (
     <Animated.View style={[styles.slide, animStyle]}>
-      <View style={[styles.iconCircle, { backgroundColor: slide.bgColor }]}>
-        <Ionicons name={slide.icon} size={56} color={slide.iconColor} />
+      <View style={[styles.iconCircle, { backgroundColor: bgColor }]}> 
+        <Ionicons name={slide.icon} size={56} color={iconColor} />
       </View>
       <Text style={styles.slideTitle}>{slide.title}</Text>
       <Text style={styles.slideSubtitle}>{slide.subtitle}</Text>
@@ -81,6 +83,8 @@ function Slide({ slide, index, scrollX }: { slide: (typeof SLIDES)[0]; index: nu
 }
 
 export default function OnboardingScreen() {
+  const { colors: C } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
@@ -162,7 +166,7 @@ export default function OnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (C: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.black, alignItems: "center" },
   topBar: {
     width: "100%",
@@ -194,7 +198,7 @@ const styles = StyleSheet.create({
   slideTitle: {
     fontFamily: "Inter_700Bold",
     fontSize: 30,
-    color: C.white,
+    color: C.text,
     textAlign: "center",
     letterSpacing: -0.5,
   },

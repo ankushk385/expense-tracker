@@ -27,7 +27,8 @@ import {
   fromDateKey,
 } from "@/constants/categories";
 import type { Transaction } from "@/context/transactions";
-import C from "@/constants/colors";
+import { ThemeColors } from "@/constants/colors";
+import { useAppTheme } from "@/context/theme";
 
 type Period = "week" | "month" | "3months";
 
@@ -94,6 +95,7 @@ function groupByMonth(transactions: Transaction[], period: Period) {
 }
 
 function PieChart({ data }: { data: { label: string; value: number; color: string }[] }) {
+  const { colors: C } = useAppTheme();
   const total = data.reduce((s, d) => s + d.value, 0);
   if (total === 0) return null;
 
@@ -137,6 +139,8 @@ function PieChart({ data }: { data: { label: string; value: number; color: strin
 }
 
 function CategoryBreakdown({ transactions }: { transactions: Transaction[] }) {
+  const { colors: C } = useAppTheme();
+  const styles = useMemo(() => createStyles(C), [C]);
   const byCategory = useMemo(() => {
     const map: Record<string, number> = {};
     transactions
@@ -231,6 +235,8 @@ function CategoryBreakdown({ transactions }: { transactions: Transaction[] }) {
 }
 
 export default function AnalyticsScreen() {
+  const { colors: C } = useAppTheme();
+  const styles = useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { transactions } = useTransactions();
@@ -403,13 +409,13 @@ export default function AnalyticsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (C: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.black },
   scroll: { paddingHorizontal: 20 },
   screenTitle: {
     fontFamily: "Inter_700Bold",
     fontSize: 28,
-    color: C.white,
+    color: C.text,
     letterSpacing: -0.5,
     marginBottom: 20,
   },

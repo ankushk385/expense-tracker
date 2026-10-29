@@ -16,7 +16,8 @@ import * as Haptics from "expo-haptics";
 import { useTransactions, Transaction } from "@/context/transactions";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { getCategoryById, formatINR, fromDateKey } from "@/constants/categories";
-import C from "@/constants/colors";
+import { ThemeColors } from "@/constants/colors";
+import { useAppTheme } from "@/context/theme";
 
 type Filter = "all" | "income" | "expense";
 
@@ -26,6 +27,8 @@ function formatDate(dateStr: string) {
 }
 
 function TransactionRow({ item }: { item: Transaction }) {
+  const { colors: C } = useAppTheme();
+  const styles = useMemo(() => createStyles(C), [C]);
   const cat = getCategoryById(item.category);
   const isIncome = item.type === "income";
   return (
@@ -52,6 +55,8 @@ function TransactionRow({ item }: { item: Transaction }) {
 }
 
 export default function TransactionsScreen() {
+  const { colors: C } = useAppTheme();
+  const styles = useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { transactions, isLoading } = useTransactions();
   const [filter, setFilter] = useState<Filter>("all");
@@ -181,7 +186,7 @@ export default function TransactionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (C: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.black },
   header: {
     flexDirection: "row",
@@ -190,7 +195,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
-  title: { fontFamily: "Inter_700Bold", fontSize: 28, color: C.white, letterSpacing: -0.5 },
+  title: { fontFamily: "Inter_700Bold", fontSize: 28, color: C.text, letterSpacing: -0.5 },
   addBtn: {
     width: 40,
     height: 40,

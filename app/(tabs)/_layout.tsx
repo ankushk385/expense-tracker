@@ -5,11 +5,12 @@ import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import C from "@/constants/colors";
+import { useAppTheme } from "@/context/theme";
 
 function NativeTabLayout() {
+  const { colors } = useAppTheme();
   return (
-    <NativeTabs>
+    <NativeTabs tintColor={colors.expense} labelStyle={{ color: colors.textSecondary }}>
       <NativeTabs.Trigger name="index">
         <Icon sf={{ default: "house", selected: "house.fill" }} />
         <Label>Home</Label>
@@ -39,6 +40,7 @@ function NativeTabLayout() {
 }
 
 function ClassicTabLayout() {
+  const { colors: C, isDark } = useAppTheme();
   const isWeb = Platform.OS === "web";
   const isIOS = Platform.OS === "ios";
 
@@ -50,7 +52,7 @@ function ClassicTabLayout() {
         tabBarInactiveTintColor: C.mediumGray,
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: isIOS ? "transparent" : C.black,
+          backgroundColor: isIOS ? "transparent" : C.background,
           borderTopWidth: isWeb ? 1 : 0,
           borderTopColor: C.border,
           elevation: 0,
@@ -59,7 +61,7 @@ function ClassicTabLayout() {
         tabBarLabelStyle: { fontSize: 10 },
         tabBarBackground: () =>
           isIOS ? (
-            <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
+            <BlurView intensity={80} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
           ) : isWeb ? (
             <View style={[StyleSheet.absoluteFill, { backgroundColor: C.black }]} />
           ) : null,

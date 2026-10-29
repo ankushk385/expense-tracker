@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  ScrollView,
   Platform,
   ActivityIndicator,
 } from "react-native";
@@ -24,7 +23,9 @@ import {
   todayKey,
 } from "@/constants/categories";
 import { parseAmount, sanitizeAmountInput } from "@/lib/amount";
-import C from "@/constants/colors";
+import { ThemeColors } from "@/constants/colors";
+import { useAppTheme } from "@/context/theme";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 
 function formatDisplayDate(dateStr: string) {
   const d = fromDateKey(dateStr);
@@ -35,11 +36,15 @@ function CategoryPicker({
   categories,
   selected,
   onSelect,
+  accent,
 }: {
   categories: Category[];
   selected: string;
   onSelect: (key: string) => void;
+  accent: { color: string; soft: string };
 }) {
+  const { colors: C, isDark } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   return (
     <View style={styles.catGrid}>
       {categories.map((cat) => {
@@ -51,17 +56,17 @@ function CategoryPicker({
             key={cat.key}
             style={[
               styles.catItem,
-              isSelected && { backgroundColor: cat.color + "22", borderColor: cat.color },
+              isSelected && { backgroundColor: accent.soft, borderColor: accent.color },
             ]}
             onPress={() => {
               Haptics.selectionAsync();
               onSelect(cat.key);
             }}
           >
-            <View style={[styles.catIconWrap, { backgroundColor: cat.color + "22" }]}>
+            <View style={[styles.catIconWrap, { backgroundColor: cat.color + (isDark ? "26" : "18") }]}> 
               <Ionicons name={cat.icon as any} size={18} color={cat.color} />
             </View>
-            <Text style={[styles.catLabel, isSelected && { color: cat.color }]} numberOfLines={1}>
+            <Text style={[styles.catLabel, isSelected && { color: accent.color }]} numberOfLines={1}>
               {cat.label}
             </Text>
           </Pressable>
@@ -72,6 +77,8 @@ function CategoryPicker({
 }
 
 export default function AddTransactionScreen() {
+  const { colors: C } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ type?: string }>();
   const { addTransaction } = useTransactions();
@@ -87,6 +94,7 @@ export default function AddTransactionScreen() {
   const [error, setError] = useState("");
 
   const categories = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const closeSheet = () => router.canGoBack() ? router.back() : router.replace("/(tabs)");
 
   const handleSave = async () => {
     const amt = parseAmount(amount);
@@ -105,7 +113,7 @@ export default function AddTransactionScreen() {
     try {
       await addTransaction({ type, amount: amt, category, date, note: note.trim() });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.back();
+      closeSheet();
     } catch (e: any) {
       setError(e.message ?? "Failed to save");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -122,7 +130,7 @@ export default function AddTransactionScreen() {
       {/* Grab Handle */}
       <View style={styles.grabBar} />
 
-      <ScrollView
+      <KeyboardAwareScrollViewCompat
         contentContainerStyle={[
           styles.scroll,
           { paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 24) },
@@ -136,7 +144,7 @@ export default function AddTransactionScreen() {
           <Pressable
             accessibilityLabel="Close transaction form"
             style={styles.closeBtn}
-            onPress={() => router.back()}
+            onPress={closeSheet}
           >
             <Ionicons name="close" size={20} color={C.lightGray} />
           </Pressable>
@@ -196,7 +204,7 @@ export default function AddTransactionScreen() {
         {/* Category */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Category</Text>
-          <CategoryPicker categories={categories} selected={category} onSelect={setCategory} />
+          <CategoryPicker categories={categories} selected={category} onSelect={setCategory} accent={{ color: accentColor, soft: isIncome ? C.incomeSoft : C.expenseSoft }} />
         </View>
 
         {/* Date */}
@@ -278,12 +286,12 @@ export default function AddTransactionScreen() {
             </>
           )}
         </Pressable>
-      </ScrollView>
+      </KeyboardAwareScrollViewCompat>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (C: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.card },
   grabBar: {
     width: 36,
@@ -301,7 +309,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 16,
   },
-  sheetTitle: { fontFamily: "Inter_700Bold", fontSize: 22, color: C.white },
+  sheetTitle: { fontFamily: "Inter_700Bold", fontSize: 22, color: C.text },
   closeBtn: {
     width: 34,
     height: 34,

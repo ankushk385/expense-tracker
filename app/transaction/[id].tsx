@@ -14,7 +14,8 @@ import * as Haptics from "expo-haptics";
 import { useTransactions } from "@/context/transactions";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { getCategoryById, formatINR, fromDateKey } from "@/constants/categories";
-import C from "@/constants/colors";
+import { ThemeColors } from "@/constants/colors";
+import { useAppTheme } from "@/context/theme";
 
 function formatFullDate(dateStr: string) {
   const d = fromDateKey(dateStr);
@@ -27,6 +28,8 @@ function formatFullDate(dateStr: string) {
 }
 
 function DetailRow({ icon, label, value }: { icon: string; label: string; value: string }) {
+  const { colors: C } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   return (
     <View style={styles.detailRow}>
       <View style={styles.detailIconWrap}>
@@ -41,9 +44,12 @@ function DetailRow({ icon, label, value }: { icon: string; label: string; value:
 }
 
 export default function TransactionDetailScreen() {
+  const { colors: C } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { transactions, deleteTransaction } = useTransactions();
+  const closeSheet = () => router.canGoBack() ? router.back() : router.replace("/(tabs)/transactions");
 
   const transaction = transactions.find((t) => t.id === id);
 
@@ -51,7 +57,7 @@ export default function TransactionDetailScreen() {
     return (
       <View style={styles.notFound}>
         <Text style={styles.notFoundText}>Transaction not found</Text>
-        <Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable accessibilityLabel="Go back" onPress={closeSheet} style={styles.backBtn}>
           <Text style={styles.backBtnText}>Go Back</Text>
         </Pressable>
       </View>
@@ -72,7 +78,7 @@ export default function TransactionDetailScreen() {
         onPress: async () => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
           await deleteTransaction(transaction.id);
-          router.back();
+          closeSheet();
         },
       },
     ]);
@@ -95,7 +101,7 @@ export default function TransactionDetailScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Transaction</Text>
-        <Pressable accessibilityLabel="Close transaction details" style={styles.closeBtn} onPress={() => router.back()}>
+        <Pressable accessibilityLabel="Close transaction details" style={styles.closeBtn} onPress={closeSheet}>
           <Ionicons name="close" size={20} color={C.lightGray} />
         </Pressable>
       </View>
@@ -169,7 +175,7 @@ export default function TransactionDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (C: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.card, paddingHorizontal: 20 },
   grabBar: {
     width: 36,
@@ -186,7 +192,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 14,
   },
-  title: { fontFamily: "Inter_700Bold", fontSize: 20, color: C.white },
+  title: { fontFamily: "Inter_700Bold", fontSize: 20, color: C.text },
   closeBtn: {
     width: 34,
     height: 34,

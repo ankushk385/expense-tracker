@@ -17,9 +17,12 @@ import * as Haptics from "expo-haptics";
 import { useBudgets } from "@/context/budgets";
 import { getCategoryById } from "@/constants/categories";
 import { parseAmount, sanitizeAmountInput } from "@/lib/amount";
-import C from "@/constants/colors";
+import { ThemeColors } from "@/constants/colors";
+import { useAppTheme } from "@/context/theme";
 
 export default function SetBudgetScreen() {
+  const { colors: C } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { categoryKey } = useLocalSearchParams<{ categoryKey: string }>();
   const { setBudget, getBudget, removeBudget } = useBudgets();
@@ -31,6 +34,7 @@ export default function SetBudgetScreen() {
   const [alertPct, setAlertPct] = useState(existing?.alertPct?.toString() ?? "80");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const closeSheet = () => router.canGoBack() ? router.back() : router.replace("/(tabs)/budgets");
 
   const handleSave = async () => {
     const amt = parseAmount(amount);
@@ -52,7 +56,7 @@ export default function SetBudgetScreen() {
     try {
       await setBudget(categoryKey!, amt, pct);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.back();
+      closeSheet();
     } catch (e: any) {
       setError(e.message ?? "Failed to save");
     } finally {
@@ -69,7 +73,7 @@ export default function SetBudgetScreen() {
         onPress: async () => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
           await removeBudget(categoryKey!);
-          router.back();
+          closeSheet();
         },
       },
     ]);
@@ -95,7 +99,7 @@ export default function SetBudgetScreen() {
             <Text style={styles.title}>Set Budget</Text>
             <Text style={styles.subtitle}>{cat?.label ?? categoryKey}</Text>
           </View>
-          <Pressable accessibilityLabel="Close budget form" style={styles.closeBtn} onPress={() => router.back()}>
+          <Pressable accessibilityLabel="Close budget form" style={styles.closeBtn} onPress={closeSheet}>
             <Ionicons name="close" size={18} color={C.lightGray} />
           </Pressable>
         </View>
@@ -186,7 +190,7 @@ export default function SetBudgetScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (C: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.card },
   grabBar: {
     width: 36,
@@ -201,7 +205,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 16 },
   catIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   headerText: { flex: 1 },
-  title: { fontFamily: "Inter_700Bold", fontSize: 20, color: C.white },
+  title: { fontFamily: "Inter_700Bold", fontSize: 20, color: C.text },
   subtitle: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.lightGray },
   closeBtn: {
     width: 32,
@@ -233,7 +237,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: "Inter_700Bold",
     fontSize: 36,
-    color: C.white,
+    color: C.text,
     paddingVertical: 14,
     letterSpacing: -1,
   },

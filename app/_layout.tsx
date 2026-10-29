@@ -18,10 +18,13 @@ import { AuthProvider, useAuth } from "@/context/auth";
 import { TransactionsProvider } from "@/context/transactions";
 import { BudgetsProvider } from "@/context/budgets";
 import { BudgetAlertsProvider } from "@/context/budget-alerts";
+import { ThemeProvider, useAppTheme } from "@/context/theme";
+import { StatusBar } from "expo-status-bar";
 
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
+  const { colors, isDark } = useAppTheme();
   const { user, isLoading } = useAuth();
   const segments = useSegments();
   const [onboarding, setOnboarding] = React.useState<{
@@ -59,7 +62,9 @@ function RootLayoutNav() {
   }, [user, isLoading, onboarding, segments]);
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <>
+    <StatusBar style={isDark ? "light" : "dark"} />
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding" options={{ headerShown: false }} />
@@ -104,6 +109,7 @@ function RootLayoutNav() {
         }}
       />
     </Stack>
+    </>
   );
 }
 
@@ -128,6 +134,7 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <KeyboardProvider>
+            <ThemeProvider>
             <AuthProvider>
               <TransactionsProvider>
                 <BudgetsProvider>
@@ -137,6 +144,7 @@ export default function RootLayout() {
                 </BudgetsProvider>
               </TransactionsProvider>
             </AuthProvider>
+            </ThemeProvider>
           </KeyboardProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>

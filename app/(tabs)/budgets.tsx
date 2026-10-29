@@ -14,7 +14,8 @@ import * as Haptics from "expo-haptics";
 import { useTransactions } from "@/context/transactions";
 import { useBudgets } from "@/context/budgets";
 import { EXPENSE_CATEGORIES, formatINR } from "@/constants/categories";
-import C from "@/constants/colors";
+import { ThemeColors } from "@/constants/colors";
+import { useAppTheme } from "@/context/theme";
 
 interface BudgetCardProps {
   categoryKey: string;
@@ -24,6 +25,8 @@ interface BudgetCardProps {
 }
 
 function BudgetCard({ categoryKey, monthlyLimit, spent, alertPct }: BudgetCardProps) {
+  const { colors: C } = useAppTheme();
+  const styles = useMemo(() => createStyles(C), [C]);
   const cat = EXPENSE_CATEGORIES.find((c) => c.key === categoryKey);
   const rawPct = monthlyLimit > 0 ? (spent / monthlyLimit) * 100 : 0;
   const pct = Math.min(rawPct, 100);
@@ -90,6 +93,8 @@ function BudgetCard({ categoryKey, monthlyLimit, spent, alertPct }: BudgetCardPr
 }
 
 function EmptyCatCard({ cat }: { cat: (typeof EXPENSE_CATEGORIES)[0] }) {
+  const { colors: C, isDark } = useAppTheme();
+  const styles = useMemo(() => createStyles(C), [C]);
   return (
     <Pressable
       accessibilityLabel={`Set a budget for ${cat.label}`}
@@ -99,8 +104,8 @@ function EmptyCatCard({ cat }: { cat: (typeof EXPENSE_CATEGORIES)[0] }) {
         router.push({ pathname: "/set-budget", params: { categoryKey: cat.key } });
       }}
     >
-      <View style={[styles.catIcon, { backgroundColor: cat.color + "11" }]}>
-        <Ionicons name={cat.icon as any} size={18} color={cat.color + "88"} />
+      <View style={[styles.catIcon, { backgroundColor: cat.color + (isDark ? "26" : "18") }]}> 
+        <Ionicons name={cat.icon as any} size={20} color={cat.color} />
       </View>
       <Text numberOfLines={2} style={styles.emptyCatName}>{cat.label}</Text>
       <View style={styles.plusCircle}>
@@ -111,6 +116,8 @@ function EmptyCatCard({ cat }: { cat: (typeof EXPENSE_CATEGORIES)[0] }) {
 }
 
 export default function BudgetsScreen() {
+  const { colors: C } = useAppTheme();
+  const styles = useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { transactions } = useTransactions();
   const { budgets } = useBudgets();
@@ -158,7 +165,6 @@ export default function BudgetsScreen() {
               {now.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
             </Text>
 
-            {budgets.length > 0 && (
               <View style={styles.summaryCard}>
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryVal} numberOfLines={1} adjustsFontSizeToFit>
@@ -190,7 +196,6 @@ export default function BudgetsScreen() {
                   <Text style={styles.summaryKey}>Over Budget</Text>
                 </View>
               </View>
-            )}
 
             {budgets.length > 0 && (
               <Text style={styles.sectionHeader}>YOUR BUDGETS</Text>
@@ -239,12 +244,12 @@ export default function BudgetsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (C: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.black },
   screenTitle: {
     fontFamily: "Inter_700Bold",
     fontSize: 28,
-    color: C.white,
+    color: C.text,
     marginBottom: 2,
   },
   monthLabel: {

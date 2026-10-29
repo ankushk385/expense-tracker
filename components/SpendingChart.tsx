@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, useWindowDimensions } from "react-native";
 import Svg, { Rect, Line, Text as SvgText } from "react-native-svg";
 import { useTransactions } from "@/context/transactions";
 import { fromDateKey, todayKey, toDateKey } from "@/constants/categories";
-import C from "@/constants/colors";
+import { useAppTheme } from "@/context/theme";
 
 const CHART_HEIGHT = 120;
 const CHART_PADDING = 20;
@@ -22,6 +22,7 @@ function getLast7Days() {
 }
 
 export function SpendingChart() {
+  const { colors: C, isDark } = useAppTheme();
   const { width } = useWindowDimensions();
   const { transactions } = useTransactions();
 
@@ -42,17 +43,17 @@ export function SpendingChart() {
   const barWidth = (chartWidth - CHART_PADDING * 2) / data.length;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: C.surface, borderColor: C.border }, !isDark && styles.lightShadow]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Spending (7 days)</Text>
+        <Text style={[styles.title, { color: C.text }]}>Spending (7 days)</Text>
         <View style={styles.legend}>
           <View style={styles.legendItem}>
             <View style={[styles.dot, { backgroundColor: C.red }]} />
-            <Text style={styles.legendText}>Expense</Text>
+            <Text style={[styles.legendText, { color: C.textSecondary }]}>Expense</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.dot, { backgroundColor: C.green }]} />
-            <Text style={styles.legendText}>Income</Text>
+            <Text style={[styles.legendText, { color: C.textSecondary }]}>Income</Text>
           </View>
         </View>
       </View>
@@ -72,7 +73,7 @@ export function SpendingChart() {
                 width={bw}
                 height={Math.max(expH, 2)}
                 rx={4}
-                fill={d.expense > 0 ? C.red : C.border}
+                fill={d.expense > 0 ? C.expense : C.border}
               />
               <Rect
                 x={x + barWidth * 0.1 + bw + 2}
@@ -80,14 +81,14 @@ export function SpendingChart() {
                 width={bw}
                 height={Math.max(incH, 2)}
                 rx={4}
-                fill={d.income > 0 ? C.green : C.border}
+                fill={d.income > 0 ? C.income : C.border}
               />
               <SvgText
                 x={x + barWidth / 2}
                 y={CHART_HEIGHT + 18}
                 textAnchor="middle"
                 fontSize={10}
-                fill={C.mediumGray}
+                fill={C.textSecondary}
                 fontFamily="Inter_400Regular"
               >
                 {d.label}
@@ -110,22 +111,21 @@ export function SpendingChart() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: C.card,
-    borderRadius: 20,
+    borderRadius: 22,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: C.border,
   },
+  lightShadow: { shadowColor: "#152238", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
   },
-  title: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: C.offWhite },
+  title: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
   legend: { flexDirection: "row", gap: 12 },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontFamily: "Inter_400Regular", fontSize: 11, color: C.lightGray },
+  legendText: { fontFamily: "Inter_400Regular", fontSize: 11 },
 });

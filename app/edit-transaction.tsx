@@ -24,7 +24,8 @@ import {
   todayKey,
 } from "@/constants/categories";
 import { parseAmount, sanitizeAmountInput } from "@/lib/amount";
-import C from "@/constants/colors";
+import { ThemeColors } from "@/constants/colors";
+import { useAppTheme } from "@/context/theme";
 
 function formatDisplayDate(dateStr: string) {
   const d = fromDateKey(dateStr);
@@ -44,6 +45,8 @@ function CategoryPicker({
   selected: string;
   onSelect: (key: string) => void;
 }) {
+  const { colors: C } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   return (
     <View style={styles.catGrid}>
       {categories.map((cat) => {
@@ -87,6 +90,8 @@ function CategoryPicker({
 }
 
 export default function EditTransactionScreen() {
+  const { colors: C } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { transactions, updateTransaction } = useTransactions();
@@ -104,6 +109,7 @@ export default function EditTransactionScreen() {
   const categories = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
   const isIncome = type === "income";
   const accentColor = isIncome ? C.green : C.red;
+  const closeSheet = () => router.canGoBack() ? router.back() : router.replace("/(tabs)");
 
   if (!original) {
     return (
@@ -130,7 +136,7 @@ export default function EditTransactionScreen() {
     try {
       await updateTransaction(id!, { amount: amt, category, date, note: note.trim() });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.back();
+      closeSheet();
     } catch (e: any) {
       setError(e.message ?? "Failed to save");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -155,7 +161,7 @@ export default function EditTransactionScreen() {
       >
         <View style={styles.sheetHeader}>
           <Text style={styles.sheetTitle}>Edit Transaction</Text>
-          <Pressable accessibilityLabel="Close transaction form" style={styles.closeBtn} onPress={() => router.back()}>
+          <Pressable accessibilityLabel="Close transaction form" style={styles.closeBtn} onPress={closeSheet}>
             <Ionicons name="close" size={20} color={C.lightGray} />
           </Pressable>
         </View>
@@ -289,7 +295,7 @@ export default function EditTransactionScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (C: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.card },
   notFound: {
     flex: 1,
@@ -321,7 +327,7 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontFamily: "Inter_700Bold",
     fontSize: 22,
-    color: C.white,
+    color: C.text,
   },
   closeBtn: {
     width: 34,

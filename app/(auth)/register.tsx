@@ -15,9 +15,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/context/auth";
-import C from "@/constants/colors";
+import { ThemeColors } from "@/constants/colors";
+import { useAppTheme } from "@/context/theme";
 
 export default function RegisterScreen() {
+  const { colors: C } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { register, signInWithGoogle } = useAuth();
   const [name, setName] = useState("");
@@ -27,6 +30,7 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const returnToLogin = () => router.canGoBack() ? router.back() : router.replace("/(auth)/login");
 
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password || !confirm) {
@@ -83,7 +87,7 @@ export default function RegisterScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topRow}>
-          <Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backBtn}>
+          <Pressable accessibilityLabel="Go back" onPress={returnToLogin} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={22} color={C.offWhite} />
           </Pressable>
 
@@ -167,7 +171,7 @@ export default function RegisterScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Already have an account?</Text>
-          <Pressable onPress={() => router.back()}>
+          <Pressable onPress={returnToLogin}>
             <Text style={styles.footerLink}>Sign in</Text>
           </Pressable>
         </View>
@@ -176,7 +180,7 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (C: ThemeColors) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.black },
   scroll: { flexGrow: 1, paddingHorizontal: 24 },
   topRow: { marginBottom: 8 },
@@ -201,7 +205,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "Inter_700Bold",
     fontSize: 26,
-    color: C.white,
+    color: C.text,
     letterSpacing: -0.5,
   },
   subtitle: {
@@ -270,7 +274,7 @@ const styles = StyleSheet.create({
   registerBtnText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 16,
-    color: C.white,
+    color: C.text,
   },
   googleBtn: {
     borderRadius: 14,

@@ -17,7 +17,8 @@ import { fetch } from "expo/fetch";
 import { useTransactions, Transaction } from "@/context/transactions";
 import { getCategoryById, formatINR } from "@/constants/categories";
 import { getApiUrl } from "@/lib/query-client";
-import C from "@/constants/colors";
+import { ThemeColors } from "@/constants/colors";
+import { useAppTheme } from "@/context/theme";
 
 interface Message {
   id: string;
@@ -106,6 +107,8 @@ function buildOfflineAnswer(
 }
 
 function UserBubble({ content }: { content: string }) {
+  const { colors: C } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   return (
     <View style={styles.userBubbleRow}>
       <View style={styles.userBubble}>
@@ -116,6 +119,8 @@ function UserBubble({ content }: { content: string }) {
 }
 
 function AiBubble({ content, streaming }: { content: string; streaming?: boolean }) {
+  const { colors: C } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   return (
     <View style={styles.aiBubbleRow}>
       <View style={styles.aiAvatar}>
@@ -132,6 +137,8 @@ function AiBubble({ content, streaming }: { content: string; streaming?: boolean
 }
 
 export default function AICoachScreen() {
+  const { colors: C } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { transactions, totalIncome, totalExpenses, balance } = useTransactions();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -404,7 +411,7 @@ export default function AICoachScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (C: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.black },
   flex: { flex: 1 },
   header: {
@@ -425,7 +432,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: { fontFamily: "Inter_700Bold", fontSize: 20, color: C.white },
+  headerTitle: { fontFamily: "Inter_700Bold", fontSize: 20, color: C.text },
   headerSub: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.lightGray },
   clearBtn: {
     width: 34,
@@ -448,7 +455,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 4,
   },
-  emptyTitle: { fontFamily: "Inter_700Bold", fontSize: 22, color: C.white },
+  emptyTitle: { fontFamily: "Inter_700Bold", fontSize: 22, color: C.text },
   emptySub: {
     fontFamily: "Inter_400Regular",
     fontSize: 14,

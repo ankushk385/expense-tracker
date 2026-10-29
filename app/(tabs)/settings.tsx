@@ -19,7 +19,8 @@ import { useAuth } from "@/context/auth";
 import { useTransactions } from "@/context/transactions";
 import { useBudgetAlerts } from "@/context/budget-alerts";
 import { formatINR } from "@/constants/categories";
-import C from "@/constants/colors";
+import { ThemeColors } from "@/constants/colors";
+import { ThemePreference, useAppTheme } from "@/context/theme";
 
 function SettingsRow({
   icon,
@@ -38,6 +39,8 @@ function SettingsRow({
   destructive?: boolean;
   rightElement?: React.ReactNode;
 }) {
+  const { colors: C } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   return (
     <Pressable
       style={({ pressed }) => [styles.row, pressed && onPress && { opacity: 0.7 }]}
@@ -61,6 +64,8 @@ function SettingsRow({
 }
 
 export default function SettingsScreen() {
+  const { colors: C, preference, setPreference } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
   const { transactions, balance, clearTransactions } = useTransactions();
@@ -227,6 +232,26 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        <Text style={styles.sectionLabel}>Appearance</Text>
+        <View style={styles.themePicker}>
+          {(["light", "dark", "system"] as ThemePreference[]).map((option) => {
+            const selected = preference === option;
+            const icon = option === "light" ? "sunny-outline" : option === "dark" ? "moon-outline" : "phone-portrait-outline";
+            return (
+              <Pressable
+                key={option}
+                accessibilityLabel={`Use ${option} theme`}
+                accessibilityState={{ selected }}
+                style={[styles.themeOption, selected && styles.themeOptionSelected]}
+                onPress={() => { Haptics.selectionAsync(); void setPreference(option); }}
+              >
+                <Ionicons name={icon} size={20} color={selected ? C.expense : C.textSecondary} />
+                <Text style={[styles.themeLabel, selected && { color: C.expense }]}>{option[0].toUpperCase() + option.slice(1)}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
         {/* Account Section */}
         <Text style={styles.sectionLabel}>Account</Text>
         <View style={styles.group}>
@@ -313,10 +338,10 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (C: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.black },
   scroll: { paddingHorizontal: 20 },
-  screenTitle: { fontFamily: "Inter_700Bold", fontSize: 28, color: C.white, letterSpacing: -0.5, marginBottom: 20 },
+  screenTitle: { fontFamily: "Inter_700Bold", fontSize: 28, color: C.text, letterSpacing: -0.5, marginBottom: 20 },
   profileCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -338,13 +363,17 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontFamily: "Inter_700Bold", fontSize: 24, color: C.red },
   profileInfo: { flex: 1 },
-  profileName: { fontFamily: "Inter_600SemiBold", fontSize: 17, color: C.white },
+  profileName: { fontFamily: "Inter_600SemiBold", fontSize: 17, color: C.text },
   profileEmail: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.lightGray, marginTop: 2 },
   statsGrid: {
     flexDirection: "row",
     gap: 8,
     marginBottom: 24,
   },
+  themePicker: { flexDirection: "row", gap: 8, backgroundColor: C.card, borderRadius: 18, borderWidth: 1, borderColor: C.border, padding: 8, marginBottom: 24 },
+  themeOption: { flex: 1, minHeight: 64, borderRadius: 13, alignItems: "center", justifyContent: "center", gap: 5, borderWidth: 1, borderColor: "transparent" },
+  themeOptionSelected: { backgroundColor: C.redDim, borderColor: C.red + "44" },
+  themeLabel: { fontFamily: "Inter_500Medium", fontSize: 12, color: C.lightGray },
   statBox: {
     flex: 1,
     backgroundColor: C.card,
@@ -354,7 +383,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
   },
-  statNum: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.white },
+  statNum: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.text },
   statLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: C.lightGray, marginTop: 2 },
   sectionLabel: {
     fontFamily: "Inter_500Medium",

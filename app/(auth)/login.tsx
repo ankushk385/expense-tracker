@@ -15,9 +15,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/context/auth";
-import C from "@/constants/colors";
+import { ThemeColors } from "@/constants/colors";
+import { useAppTheme } from "@/context/theme";
 
 export default function LoginScreen() {
+  const { colors: C } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { login, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
@@ -172,7 +175,7 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (C: ThemeColors) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.black },
   scroll: { flexGrow: 1, paddingHorizontal: 24 },
   header: { alignItems: "center", marginBottom: 40, marginTop: 20 },
@@ -188,7 +191,7 @@ const styles = StyleSheet.create({
   appName: {
     fontFamily: "Inter_700Bold",
     fontSize: 28,
-    color: C.white,
+    color: C.text,
     letterSpacing: -0.5,
   },
   subtitle: {
@@ -208,7 +211,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "Inter_700Bold",
     fontSize: 22,
-    color: C.white,
+    color: C.text,
     marginBottom: 4,
   },
   inputGroup: { gap: 6 },

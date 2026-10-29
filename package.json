@@ -16,7 +16,9 @@
     "lint:fix": "npx expo lint --fix",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
-    "test:supabase": "node --test tests/supabase-integration.test.mjs"
+    "test:supabase": "node --test tests/supabase-integration.test.mjs",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
