@@ -19,13 +19,12 @@ import {
   INCOME_CATEGORIES,
   Category,
   fromDateKey,
-  isFutureDateKey,
-  shiftDateKey,
   todayKey,
 } from "@/constants/categories";
 import { parseAmount, sanitizeAmountInput } from "@/lib/amount";
 import { ThemeColors } from "@/constants/colors";
 import { useAppTheme } from "@/context/theme";
+import { CalendarDatePicker } from "@/components/CalendarDatePicker";
 
 function formatDisplayDate(dateStr: string) {
   const d = fromDateKey(dateStr);
@@ -103,6 +102,7 @@ export default function EditTransactionScreen() {
   const [category, setCategory] = useState(original?.category ?? "");
   const [date, setDate] = useState(original?.date ?? todayKey());
   const [note, setNote] = useState(original?.note ?? "");
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -211,34 +211,20 @@ export default function EditTransactionScreen() {
         {/* Date */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Date</Text>
-          <View style={styles.dateRow}>
-            <Pressable
-              accessibilityLabel="Previous date"
-              style={styles.dateBtn}
-              onPress={() => {
-                setDate((current) => shiftDateKey(current, -1));
-                Haptics.selectionAsync();
-              }}
-            >
-              <Ionicons name="chevron-back" size={18} color={C.lightGray} />
-            </Pressable>
+          <Pressable
+            accessibilityLabel={`Choose transaction date. Current date ${formatDisplayDate(date)}`}
+            style={styles.dateRow}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setCalendarOpen(true);
+            }}
+          >
+            <View style={[styles.dateIcon, { backgroundColor: accentColor + "18" }]}>
+              <Ionicons name="calendar-outline" size={19} color={accentColor} />
+            </View>
             <Text style={styles.dateText}>{formatDisplayDate(date)}</Text>
-            <Pressable
-              accessibilityLabel="Next date"
-              accessibilityState={{ disabled: isFutureDateKey(shiftDateKey(date, 1)) }}
-              disabled={isFutureDateKey(shiftDateKey(date, 1))}
-              style={[styles.dateBtn, isFutureDateKey(shiftDateKey(date, 1)) && { opacity: 0.3 }]}
-              onPress={() => {
-                setDate((current) => {
-                  const next = shiftDateKey(current, 1);
-                  return isFutureDateKey(next) ? current : next;
-                });
-                Haptics.selectionAsync();
-              }}
-            >
-              <Ionicons name="chevron-forward" size={18} color={C.lightGray} />
-            </Pressable>
-          </View>
+            <Ionicons name="chevron-down" size={18} color={C.textSecondary} />
+          </Pressable>
         </View>
 
         {/* Note */}
@@ -291,6 +277,13 @@ export default function EditTransactionScreen() {
           )}
         </Pressable>
       </ScrollView>
+      <CalendarDatePicker
+        visible={calendarOpen}
+        value={date}
+        onChange={setDate}
+        onClose={() => setCalendarOpen(false)}
+        accentColor={accentColor}
+      />
     </View>
   );
 }
@@ -412,7 +405,7 @@ const createStyles = (C: ThemeColors) => StyleSheet.create({
   dateRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 12,
     backgroundColor: C.card2,
     borderRadius: 14,
     paddingVertical: 12,
@@ -420,8 +413,15 @@ const createStyles = (C: ThemeColors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
   },
-  dateBtn: { padding: 4 },
+  dateIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   dateText: {
+    flex: 1,
     fontFamily: "Inter_500Medium",
     fontSize: 14,
     color: C.offWhite,

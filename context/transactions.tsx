@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState } from "react-native";
 import { useAuth } from "./auth";
 import {
+  fetchTransactions,
   removeAllTransactions,
   removeTransaction,
   saveTransaction,
@@ -27,6 +29,10 @@ interface TransactionsContextValue {
   updateTransaction: (id: string, t: Partial<Omit<Transaction, "id" | "createdAt">>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   clearTransactions: () => Promise<void>;
+  syncNow: () => Promise<void>;
+  isSyncing: boolean;
+  lastSyncedAt: string | null;
+  syncError: string | null;
   totalIncome: number;
   totalExpenses: number;
   balance: number;
@@ -42,6 +48,9 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -62,12 +71,48 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
         const synced = await syncTransactions(user.id, local);
         setTransactions(synced);
         await AsyncStorage.setItem(storageKey(user.id), JSON.stringify(synced));
+        setLastSyncedAt(new Date().toISOString());
+        setSyncError(null);
       } catch (error) {
         console.warn("Transaction cloud sync failed; using local data.", error);
+        setSyncError("Transactions could not reach Supabase.");
       } finally {
         setIsLoading(false);
       }
     })();
+  }, [user]);
+
+  const syncNow = useCallback(async () => {
+    if (!user || isSyncing) return;
+    setIsSyncing(true);
+    try {
+      const synced = await syncTransactions(user.id, transactions);
+      setTransactions(synced);
+      await AsyncStorage.setItem(storageKey(user.id), JSON.stringify(synced));
+      setLastSyncedAt(new Date().toISOString());
+      setSyncError(null);
+    } catch (error) {
+      setSyncError("Transactions could not reach Supabase.");
+      throw error;
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [isSyncing, transactions, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active") return;
+      void fetchTransactions()
+        .then(async (cloud) => {
+          setTransactions(cloud);
+          await AsyncStorage.setItem(storageKey(user.id), JSON.stringify(cloud));
+          setLastSyncedAt(new Date().toISOString());
+          setSyncError(null);
+        })
+        .catch(() => setSyncError("Transactions could not reach Supabase."));
+    });
+    return () => subscription.remove();
   }, [user]);
 
   const save = useCallback(
@@ -135,11 +180,15 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
       updateTransaction,
       deleteTransaction,
       clearTransactions,
+      syncNow,
+      isSyncing,
+      lastSyncedAt,
+      syncError,
       totalIncome,
       totalExpenses,
       balance,
     }),
-    [transactions, isLoading, addTransaction, updateTransaction, deleteTransaction, clearTransactions, totalIncome, totalExpenses, balance]
+    [transactions, isLoading, addTransaction, updateTransaction, deleteTransaction, clearTransactions, syncNow, isSyncing, lastSyncedAt, syncError, totalIncome, totalExpenses, balance]
   );
 
   return <TransactionsContext.Provider value={value}>{children}</TransactionsContext.Provider>;

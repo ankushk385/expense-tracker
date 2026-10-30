@@ -18,14 +18,13 @@ import {
   INCOME_CATEGORIES,
   Category,
   fromDateKey,
-  isFutureDateKey,
-  shiftDateKey,
   todayKey,
 } from "@/constants/categories";
 import { parseAmount, sanitizeAmountInput } from "@/lib/amount";
 import { ThemeColors } from "@/constants/colors";
 import { useAppTheme } from "@/context/theme";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
+import { CalendarDatePicker } from "@/components/CalendarDatePicker";
 
 function formatDisplayDate(dateStr: string) {
   const d = fromDateKey(dateStr);
@@ -45,9 +44,11 @@ function CategoryPicker({
 }) {
   const { colors: C, isDark } = useAppTheme();
   const styles = React.useMemo(() => createStyles(C), [C]);
+  const [showAll, setShowAll] = useState(false);
+  const visibleCategories = showAll || categories.length <= 8 ? categories : categories.slice(0, 7);
   return (
     <View style={styles.catGrid}>
-      {categories.map((cat) => {
+      {visibleCategories.map((cat) => {
         const isSelected = cat.key === selected;
         return (
           <Pressable
@@ -72,6 +73,12 @@ function CategoryPicker({
           </Pressable>
         );
       })}
+      {!showAll && categories.length > 8 ? (
+        <Pressable accessibilityLabel="Show more categories" style={styles.catItem} onPress={() => setShowAll(true)}>
+          <View style={[styles.catIconWrap, { backgroundColor: C.surfaceSecondary }]}><Ionicons name="ellipsis-horizontal" size={20} color={C.textSecondary} /></View>
+          <Text style={styles.catLabel}>More</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -90,6 +97,7 @@ export default function AddTransactionScreen() {
   const [category, setCategory] = useState("");
   const [date, setDate] = useState(todayKey());
   const [note, setNote] = useState("");
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -131,6 +139,7 @@ export default function AddTransactionScreen() {
       <View style={styles.grabBar} />
 
       <KeyboardAwareScrollViewCompat
+        enabled={Platform.OS !== "android"}
         contentContainerStyle={[
           styles.scroll,
           { paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 24) },
@@ -210,34 +219,20 @@ export default function AddTransactionScreen() {
         {/* Date */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Date</Text>
-          <View style={styles.dateRow}>
-            <Pressable
-              accessibilityLabel="Previous date"
-              style={styles.dateBtn}
-              onPress={() => {
-                setDate((current) => shiftDateKey(current, -1));
-                Haptics.selectionAsync();
-              }}
-            >
-              <Ionicons name="chevron-back" size={18} color={C.lightGray} />
-            </Pressable>
+          <Pressable
+            accessibilityLabel={`Choose transaction date. Current date ${formatDisplayDate(date)}`}
+            style={styles.dateRow}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setCalendarOpen(true);
+            }}
+          >
+            <View style={[styles.dateIcon, { backgroundColor: accentColor + "18" }]}>
+              <Ionicons name="calendar-outline" size={19} color={accentColor} />
+            </View>
             <Text style={styles.dateText}>{formatDisplayDate(date)}</Text>
-            <Pressable
-              accessibilityLabel="Next date"
-              accessibilityState={{ disabled: isFutureDateKey(shiftDateKey(date, 1)) }}
-              disabled={isFutureDateKey(shiftDateKey(date, 1))}
-              style={[styles.dateBtn, isFutureDateKey(shiftDateKey(date, 1)) && { opacity: 0.3 }]}
-              onPress={() => {
-                setDate((current) => {
-                  const next = shiftDateKey(current, 1);
-                  return isFutureDateKey(next) ? current : next;
-                });
-                Haptics.selectionAsync();
-              }}
-            >
-              <Ionicons name="chevron-forward" size={18} color={C.lightGray} />
-            </Pressable>
-          </View>
+            <Ionicons name="chevron-down" size={18} color={C.textSecondary} />
+          </Pressable>
         </View>
 
         {/* Note */}
@@ -287,6 +282,13 @@ export default function AddTransactionScreen() {
           )}
         </Pressable>
       </KeyboardAwareScrollViewCompat>
+      <CalendarDatePicker
+        visible={calendarOpen}
+        value={date}
+        onChange={setDate}
+        onClose={() => setCalendarOpen(false)}
+        accentColor={accentColor}
+      />
     </View>
   );
 }
@@ -370,33 +372,36 @@ const createStyles = (C: ThemeColors) => StyleSheet.create({
     gap: 8,
   },
   catItem: {
-    flexDirection: "row",
+    width: "23.2%",
+    minHeight: 82,
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 12,
+    justifyContent: "center",
+    gap: 7,
+    paddingHorizontal: 4,
+    paddingVertical: 10,
+    borderRadius: 16,
     backgroundColor: C.card2,
     borderWidth: 1,
     borderColor: C.border,
   },
   catIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   catLabel: {
     fontFamily: "Inter_400Regular",
-    fontSize: 13,
-    color: C.lightGray,
-    maxWidth: 80,
+    fontSize: 10,
+    color: C.textSecondary,
+    maxWidth: "100%",
+    textAlign: "center",
   },
   dateRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 12,
     backgroundColor: C.card2,
     borderRadius: 14,
     paddingVertical: 12,
@@ -404,8 +409,14 @@ const createStyles = (C: ThemeColors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
   },
-  dateBtn: { padding: 4 },
-  dateText: { fontFamily: "Inter_500Medium", fontSize: 14, color: C.offWhite },
+  dateIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dateText: { flex: 1, fontFamily: "Inter_500Medium", fontSize: 14, color: C.offWhite },
   noteWrap: {
     flexDirection: "row",
     alignItems: "center",

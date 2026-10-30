@@ -33,6 +33,11 @@ export async function syncTransactions(userId: string, local: Transaction[]) {
       .upsert(local.map(item => transactionRow(userId, item)));
     if (error) throw error;
   }
+  return fetchTransactions();
+}
+
+export async function fetchTransactions() {
+  if (!isSupabaseConfigured) return [] as Transaction[];
   const { data, error } = await supabase
     .from('expense_transactions')
     .select('*')
@@ -78,6 +83,11 @@ export async function syncBudgets(userId: string, local: Budget[]) {
       .upsert(local.map(item => budgetRow(userId, item)));
     if (error) throw error;
   }
+  return fetchBudgets();
+}
+
+export async function fetchBudgets() {
+  if (!isSupabaseConfigured) return [] as Budget[];
   const { data, error } = await supabase
     .from('expense_budgets')
     .select('*')

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
-  FlatList,
+  SectionList,
   StyleSheet,
   TextInput,
   Platform,
@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useTransactions, Transaction } from "@/context/transactions";
 import { CategoryIcon } from "@/components/CategoryIcon";
-import { getCategoryById, formatINR, fromDateKey } from "@/constants/categories";
+import { getCategoryById, formatINR, fromDateKey, todayKey, shiftDateKey } from "@/constants/categories";
 import { ThemeColors } from "@/constants/colors";
 import { useAppTheme } from "@/context/theme";
 
@@ -76,6 +76,18 @@ export default function TransactionsScreen() {
     return list;
   }, [transactions, filter, search]);
 
+  const sections = useMemo(() => {
+    const grouped = filtered.reduce<Record<string, Transaction[]>>((result, item) => {
+      (result[item.date] ??= []).push(item);
+      return result;
+    }, {});
+    return Object.keys(grouped).sort((a, b) => b.localeCompare(a)).map((date) => ({
+      title: date === todayKey() ? "Today" : date === shiftDateKey(todayKey(), -1) ? "Yesterday" : formatDate(date),
+      date,
+      data: grouped[date],
+    }));
+  }, [filtered]);
+
   const topInset = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomInset = insets.bottom + (Platform.OS === "web" ? 34 : 0);
 
@@ -84,16 +96,6 @@ export default function TransactionsScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <Text style={styles.title}>History</Text>
-        <Pressable
-          accessibilityLabel="Add a transaction"
-          style={styles.addBtn}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            router.push("/add-transaction");
-          }}
-        >
-          <Ionicons name="add" size={22} color={C.white} />
-        </Pressable>
       </View>
 
       {/* Search */}
@@ -151,17 +153,23 @@ export default function TransactionsScreen() {
         <Text style={styles.count}>{filtered.length} items</Text>
       </View>
 
-      <FlatList
-        data={filtered}
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <TransactionRow item={item} />}
+        renderSectionHeader={({ section }) => (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <Text style={styles.sectionTotal}>₹{formatINR(section.data.reduce((sum, item) => sum + item.amount, 0))}</Text>
+          </View>
+        )}
         contentContainerStyle={[
           styles.list,
           { paddingBottom: bottomInset + 100, paddingHorizontal: 16 },
-          filtered.length === 0 && { flex: 1 },
+          sections.length === 0 && { flex: 1 },
         ]}
         showsVerticalScrollIndicator={false}
-        scrollEnabled={!!filtered.length}
+        scrollEnabled={!!sections.length}
         ListEmptyComponent={
           isLoading ? (
             <View style={styles.empty}>
@@ -195,15 +203,7 @@ const createStyles = (C: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
-  title: { fontFamily: "Inter_700Bold", fontSize: 28, color: C.text, letterSpacing: -0.5 },
-  addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: C.red,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  title: { fontFamily: "Inter_700Bold", fontSize: 32, color: C.text, letterSpacing: -0.7 },
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -250,6 +250,9 @@ const createStyles = (C: ThemeColors) => StyleSheet.create({
     marginLeft: "auto",
   },
   list: { gap: 0 },
+  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingTop: 12, paddingBottom: 8, paddingHorizontal: 2 },
+  sectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: C.text },
+  sectionTotal: { fontFamily: "Inter_500Medium", fontSize: 12, color: C.textSecondary },
   row: {
     flexDirection: "row",
     alignItems: "center",

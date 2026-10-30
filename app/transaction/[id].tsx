@@ -69,17 +69,25 @@ export default function TransactionDetailScreen() {
   const accentColor = isIncome ? C.green : C.red;
   const accentDim = isIncome ? C.greenDim : C.redDim;
 
+  const performDelete = async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    await deleteTransaction(transaction.id);
+    closeSheet();
+  };
+
   const handleDelete = () => {
+    if (Platform.OS === "web") {
+      if (globalThis.confirm("Are you sure you want to delete this transaction?")) {
+        void performDelete();
+      }
+      return;
+    }
     Alert.alert("Delete Transaction", "Are you sure you want to delete this transaction?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
         style: "destructive",
-        onPress: async () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-          await deleteTransaction(transaction.id);
-          closeSheet();
-        },
+        onPress: () => void performDelete(),
       },
     ]);
   };

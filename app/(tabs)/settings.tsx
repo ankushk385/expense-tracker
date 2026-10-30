@@ -17,10 +17,12 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { useAuth } from "@/context/auth";
 import { useTransactions } from "@/context/transactions";
+import { useBudgets } from "@/context/budgets";
 import { useBudgetAlerts } from "@/context/budget-alerts";
 import { formatINR } from "@/constants/categories";
 import { ThemeColors } from "@/constants/colors";
 import { ThemePreference, useAppTheme } from "@/context/theme";
+import { router } from "expo-router";
 
 function SettingsRow({
   icon,
@@ -68,9 +70,23 @@ export default function SettingsScreen() {
   const styles = React.useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
-  const { transactions, balance, clearTransactions } = useTransactions();
+  const {
+    transactions,
+    balance,
+    clearTransactions,
+    syncNow: syncTransactions,
+    isSyncing: transactionsSyncing,
+    lastSyncedAt,
+    syncError: transactionSyncError,
+  } = useTransactions();
+  const {
+    syncNow: syncBudgets,
+    isSyncing: budgetsSyncing,
+    syncError: budgetSyncError,
+  } = useBudgets();
   const { enabled: budgetAlertsEnabled, setEnabled: setBudgetAlertsEnabled } = useBudgetAlerts();
   const [exporting, setExporting] = useState(false);
+  const [manualSyncing, setManualSyncing] = useState(false);
 
   const topInset = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomInset = insets.bottom + (Platform.OS === "web" ? 34 : 0);
@@ -188,6 +204,39 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleCloudSync = async () => {
+    if (manualSyncing || transactionsSyncing || budgetsSyncing) return;
+    setManualSyncing(true);
+    try {
+      await Promise.all([syncTransactions(), syncBudgets()]);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      Alert.alert(
+        "Sync unavailable",
+        error instanceof Error
+          ? error.message
+          : "Your data remains safely cached on this device and will sync when the connection returns.",
+      );
+    } finally {
+      setManualSyncing(false);
+    }
+  };
+
+  const cloudSyncing = manualSyncing || transactionsSyncing || budgetsSyncing;
+  const cloudSyncError = transactionSyncError || budgetSyncError;
+  const cloudSyncStatus = cloudSyncing
+    ? "Syncing transactions and budgets…"
+    : cloudSyncError
+      ? "Offline changes are cached — tap to retry"
+      : lastSyncedAt
+        ? `Last synced ${new Date(lastSyncedAt).toLocaleString("en-IN", {
+            day: "numeric",
+            month: "short",
+            hour: "numeric",
+            minute: "2-digit",
+          })}`
+        : "Keep your data available on every device";
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -197,7 +246,25 @@ export default function SettingsScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.screenTitle}>Settings</Text>
+        <Text style={styles.screenTitle}>More</Text>
+
+        <Text style={styles.sectionLabel}>Tools & manage</Text>
+        <View style={styles.group}>
+          <SettingsRow icon="wallet-outline" iconColor={C.blue} label="Budgets" sublabel="Plan limits and track category spending" onPress={() => router.push("/(tabs)/budgets")} />
+          <View style={styles.divider} />
+          <SettingsRow icon="sparkles" iconColor={C.purple} label="AI Coach" sublabel="Get personalised financial guidance" onPress={() => router.push("/(tabs)/ai-coach")} />
+          <View style={styles.divider} />
+          <SettingsRow icon="grid-outline" iconColor={C.yellow} label="Categories" sublabel="View categories and set category budgets" onPress={() => router.push("/(tabs)/budgets")} />
+          <View style={styles.divider} />
+          <SettingsRow
+            icon="cloud-download-outline"
+            iconColor={C.income}
+            label="Export & Backup"
+            sublabel={exporting ? "Preparing CSV…" : "Save or share your transaction data"}
+            onPress={() => { if (!exporting) void handleExport(); }}
+            rightElement={exporting ? <ActivityIndicator color={C.income} /> : undefined}
+          />
+        </View>
 
         {/* Profile Card */}
         <View style={styles.profileCard}>
@@ -282,19 +349,15 @@ export default function SettingsScreen() {
         </View>
 
         {/* Data Section */}
-        <Text style={styles.sectionLabel}>Data</Text>
+        <Text style={styles.sectionLabel}>Data & privacy</Text>
         <View style={styles.group}>
           <SettingsRow
-            icon="cloud-download-outline"
-            iconColor={C.green}
-            label="Export Data"
-            sublabel={exporting ? "Preparing CSV…" : "Save or share transactions as CSV"}
-            onPress={() => {
-              if (exporting) return;
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              void handleExport();
-            }}
-            rightElement={exporting ? <ActivityIndicator color={C.green} /> : undefined}
+            icon="cloud-done-outline"
+            iconColor={C.income}
+            label="Supabase Cloud Sync"
+            sublabel={cloudSyncStatus}
+            onPress={() => void handleCloudSync()}
+            rightElement={cloudSyncing ? <ActivityIndicator color={C.income} /> : undefined}
           />
           <View style={styles.divider} />
           <SettingsRow
@@ -320,7 +383,7 @@ export default function SettingsScreen() {
             icon="shield-checkmark-outline"
             iconColor="#4361EE"
             label="Privacy"
-            sublabel="Data stored locally on device"
+            sublabel="Encrypted account sync with offline device cache"
           />
         </View>
 
@@ -341,7 +404,7 @@ export default function SettingsScreen() {
 const createStyles = (C: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.black },
   scroll: { paddingHorizontal: 20 },
-  screenTitle: { fontFamily: "Inter_700Bold", fontSize: 28, color: C.text, letterSpacing: -0.5, marginBottom: 20 },
+  screenTitle: { fontFamily: "Inter_700Bold", fontSize: 32, color: C.text, letterSpacing: -0.7, marginBottom: 20 },
   profileCard: {
     flexDirection: "row",
     alignItems: "center",

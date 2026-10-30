@@ -237,14 +237,15 @@ function setupErrorHandler(app: express.Application) {
   setupErrorHandler(app);
 
   const port = parseInt(process.env.PORT || "5000", 10);
+  const host = process.env.HOST || (process.platform === "darwin" ? "127.0.0.1" : "0.0.0.0");
   server.listen(
     {
       port,
-      host: "0.0.0.0",
-      reusePort: true,
+      host,
+      ...(process.platform === "linux" ? { reusePort: true } : {}),
     },
     () => {
-      log(`express server serving on port ${port}`);
+      log(`express server serving at http://${host}:${port}`);
     },
   );
 })();

@@ -8,8 +8,10 @@ import React, {
   ReactNode,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState } from "react-native";
 import { useAuth } from "./auth";
 import {
+  fetchBudgets,
   removeBudget as removeCloudBudget,
   saveBudget,
   syncBudgets,
@@ -28,6 +30,9 @@ interface BudgetsContextValue {
   setBudget: (categoryKey: string, monthlyLimit: number, alertPct?: number) => Promise<void>;
   removeBudget: (categoryKey: string) => Promise<void>;
   getBudget: (categoryKey: string) => Budget | undefined;
+  syncNow: () => Promise<void>;
+  isSyncing: boolean;
+  syncError: string | null;
 }
 
 const BudgetsContext = createContext<BudgetsContextValue | null>(null);
@@ -40,6 +45,8 @@ export function BudgetsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -60,12 +67,45 @@ export function BudgetsProvider({ children }: { children: ReactNode }) {
         const synced = await syncBudgets(user.id, local);
         setBudgets(synced);
         await AsyncStorage.setItem(storageKey(user.id), JSON.stringify(synced));
+        setSyncError(null);
       } catch (error) {
         console.warn("Budget cloud sync failed; using local data.", error);
+        setSyncError("Budgets could not reach Supabase.");
       } finally {
         setIsLoading(false);
       }
     })();
+  }, [user]);
+
+  const syncNow = useCallback(async () => {
+    if (!user || isSyncing) return;
+    setIsSyncing(true);
+    try {
+      const synced = await syncBudgets(user.id, budgets);
+      setBudgets(synced);
+      await AsyncStorage.setItem(storageKey(user.id), JSON.stringify(synced));
+      setSyncError(null);
+    } catch (error) {
+      setSyncError("Budgets could not reach Supabase.");
+      throw error;
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [budgets, isSyncing, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active") return;
+      void fetchBudgets()
+        .then(async (cloud) => {
+          setBudgets(cloud);
+          await AsyncStorage.setItem(storageKey(user.id), JSON.stringify(cloud));
+          setSyncError(null);
+        })
+        .catch(() => setSyncError("Budgets could not reach Supabase."));
+    });
+    return () => subscription.remove();
   }, [user]);
 
   const save = useCallback(
@@ -116,8 +156,8 @@ export function BudgetsProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ budgets, isLoading, setBudget, removeBudget, getBudget }),
-    [budgets, isLoading, setBudget, removeBudget, getBudget]
+    () => ({ budgets, isLoading, setBudget, removeBudget, getBudget, syncNow, isSyncing, syncError }),
+    [budgets, isLoading, setBudget, removeBudget, getBudget, syncNow, isSyncing, syncError]
   );
 
   return <BudgetsContext.Provider value={value}>{children}</BudgetsContext.Provider>;

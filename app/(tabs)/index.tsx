@@ -19,6 +19,7 @@ import { getCategoryById, formatINR, fromDateKey } from "@/constants/categories"
 import { ThemeColors } from "@/constants/colors";
 import { useAppTheme } from "@/context/theme";
 import { SpendingChart } from "@/components/SpendingChart";
+import { LinearGradient } from "expo-linear-gradient";
 
 function TransactionRow({ item, onPress }: { item: Transaction; onPress: () => void }) {
   const { colors: C } = useAppTheme();
@@ -163,34 +164,6 @@ function useSmartInsights(
   }, [transactions, budgets, C]);
 }
 
-function InsightCard({ insight }: { insight: Insight }) {
-  const { colors: C } = useAppTheme();
-  const styles = useMemo(() => createStyles(C), [C]);
-  return (
-    <Pressable
-      accessibilityLabel={insight.title}
-      style={[styles.insightCard, { borderLeftColor: insight.color, borderLeftWidth: 3 }]}
-      onPress={() => {
-        if (insight.action) {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.push(insight.action.route as any);
-        }
-      }}
-    >
-      <View style={[styles.insightIconWrap, { backgroundColor: insight.bgColor }]}>
-        <Ionicons name={insight.icon as any} size={18} color={insight.color} />
-      </View>
-      <View style={styles.insightContent}>
-        <Text style={styles.insightTitle}>{insight.title}</Text>
-        <Text style={styles.insightBody}>{insight.body}</Text>
-        {insight.action && (
-          <Text style={[styles.insightAction, { color: insight.color }]}>{insight.action.label} →</Text>
-        )}
-      </View>
-    </Pressable>
-  );
-}
-
 export default function DashboardScreen() {
   const { colors: C, isDark } = useAppTheme();
   const styles = useMemo(() => createStyles(C), [C]);
@@ -226,22 +199,17 @@ export default function DashboardScreen() {
           >
             <Ionicons name="settings-outline" size={20} color={C.lightGray} />
           </Pressable>
-          <Pressable
-            accessibilityLabel="Add a transaction"
-            style={styles.addBtn}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              router.push("/add-transaction");
-            }}
-          >
-            <Ionicons name="add" size={24} color={C.white} />
-          </Pressable>
         </View>
 
         {/* Balance Card */}
-        <View style={[styles.balanceCard, !isDark && styles.lightShadow]}>
+        <LinearGradient
+          colors={[C.balanceGradientStart, C.balanceGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.balanceCard, !isDark && styles.lightShadow]}
+        >
           <Text style={styles.balanceLabel}>Total Balance</Text>
-          <Text style={[styles.balanceAmount, { color: balance < 0 ? C.red : C.text }]}> 
+          <Text style={styles.balanceAmount}>
             ₹{formatINR(Math.abs(balance))}
           </Text>
           <View style={styles.kpiRow}>
@@ -251,7 +219,7 @@ export default function DashboardScreen() {
               </View>
               <View>
                 <Text style={styles.kpiLabel}>Income</Text>
-                <Text style={[styles.kpiValue, { color: C.green }]}>+₹{formatINR(totalIncome)}</Text>
+                <Text style={styles.kpiValue}>+₹{formatINR(totalIncome)}</Text>
               </View>
             </View>
             <View style={styles.kpiDivider} />
@@ -261,53 +229,27 @@ export default function DashboardScreen() {
               </View>
               <View>
                 <Text style={styles.kpiLabel}>Expenses</Text>
-                <Text style={[styles.kpiValue, { color: C.red }]}>-₹{formatINR(totalExpenses)}</Text>
+                <Text style={styles.kpiValue}>-₹{formatINR(totalExpenses)}</Text>
               </View>
             </View>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Spending Chart */}
         <SpendingChart />
 
-        {/* Smart Insights */}
-        {insights.length > 0 && (
-          <View style={styles.insightsSection}>
-            <View style={styles.insightsSectionHeader}>
-              <Ionicons name="sparkles" size={14} color={C.green} />
-              <Text style={styles.insightsSectionTitle}>Smart Insights</Text>
-            </View>
-            {insights.map((insight) => (
-              <InsightCard key={insight.id} insight={insight} />
-            ))}
+        <Pressable
+          accessibilityLabel="Open AI Finance Coach"
+          style={({ pressed }) => [styles.coachCard, pressed && { opacity: 0.85 }]}
+          onPress={() => router.push("/(tabs)/ai-coach")}
+        >
+          <View style={styles.coachIcon}><Ionicons name="sparkles" size={22} color={C.purple} /></View>
+          <View style={styles.coachCopy}>
+            <Text style={styles.coachTitle}>AI Finance Coach</Text>
+            <Text style={styles.coachText} numberOfLines={1}>{insights[0]?.title ?? "Get personalised insights from your real spending"}</Text>
           </View>
-        )}
-
-        {/* Action Buttons */}
-        <View style={styles.actionRow}>
-          <Pressable
-            accessibilityLabel="Add income"
-            style={({ pressed }) => [styles.actionBtn, { borderColor: C.green }, pressed && { opacity: 0.8 }]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push({ pathname: "/add-transaction", params: { type: "income" } });
-            }}
-          >
-            <Ionicons name="add-circle" size={20} color={C.green} />
-            <Text style={[styles.actionBtnText, { color: C.green }]}>Add Income</Text>
-          </Pressable>
-          <Pressable
-            accessibilityLabel="Add expense"
-            style={({ pressed }) => [styles.actionBtn, { borderColor: C.red }, pressed && { opacity: 0.8 }]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push({ pathname: "/add-transaction", params: { type: "expense" } });
-            }}
-          >
-            <Ionicons name="remove-circle" size={20} color={C.red} />
-            <Text style={[styles.actionBtnText, { color: C.red }]}>Add Expense</Text>
-          </Pressable>
-        </View>
+          <Ionicons name="chevron-forward" size={18} color={C.textSecondary} />
+        </Pressable>
 
         {/* Recent Transactions */}
         <View style={styles.section}>
@@ -371,14 +313,6 @@ const createStyles = (C: ThemeColors) => StyleSheet.create({
   },
   greeting: { fontFamily: "Inter_400Regular", fontSize: 14, color: C.lightGray },
   userName: { fontFamily: "Inter_700Bold", fontSize: 26, color: C.text, letterSpacing: -0.5 },
-  addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: C.red,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   settingsBtn: {
     width: 44,
     height: 44,
@@ -387,21 +321,19 @@ const createStyles = (C: ThemeColors) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginLeft: "auto",
-    marginRight: 10,
   },
   balanceCard: {
-    backgroundColor: C.card,
     borderRadius: 24,
     padding: 24,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: "rgba(255,255,255,0.18)",
   },
   lightShadow: { shadowColor: C.shadow, shadowOpacity: 0.07, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
   balanceLabel: {
     fontFamily: "Inter_400Regular",
     fontSize: 13,
-    color: C.lightGray,
+    color: "rgba(255,255,255,0.82)",
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 6,
@@ -411,6 +343,7 @@ const createStyles = (C: ThemeColors) => StyleSheet.create({
     fontSize: 40,
     letterSpacing: -1,
     marginBottom: 20,
+    color: "#FFFFFF",
   },
   kpiRow: { flexDirection: "row", alignItems: "center" },
   kpiItem: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
@@ -421,9 +354,14 @@ const createStyles = (C: ThemeColors) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  kpiLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.lightGray },
-  kpiValue: { fontFamily: "Inter_600SemiBold", fontSize: 16 },
-  kpiDivider: { width: 1, height: 36, backgroundColor: C.border, marginHorizontal: 16 },
+  kpiLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: "rgba(255,255,255,0.72)" },
+  kpiValue: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: "#FFFFFF" },
+  kpiDivider: { width: 1, height: 36, backgroundColor: "rgba(255,255,255,0.2)", marginHorizontal: 16 },
+  coachCard: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 72, padding: 14, marginBottom: 20, borderRadius: 16, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
+  coachIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: C.purple + "1F" },
+  coachCopy: { flex: 1 },
+  coachTitle: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: C.text },
+  coachText: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textSecondary, marginTop: 3 },
   actionRow: {
     flexDirection: "row",
     gap: 12,

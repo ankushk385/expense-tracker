@@ -1,17 +1,19 @@
 export const lightColors = {
   background: "#F7F5F2", surface: "#FFFFFF", surfaceSecondary: "#F3F2F0",
   text: "#0F172A", textSecondary: "#788293", border: "#E9EAED",
-  expense: "#FF5A6B", expenseSoft: "#FFE8EB", income: "#16C2A3",
-  incomeSoft: "#DDF8F1", purple: "#B77EF2", blue: "#39B8FA",
-  yellow: "#F3B33D", shadow: "#152238", overlay: "rgba(15,23,42,0.42)", white: "#FFFFFF",
+  expense: "#FF5A6B", expenseSoft: "#FFE6EB", income: "#16C2A3",
+  incomeSoft: "#DDF8F1", purple: "#8B5CF6", blue: "#3B82F6",
+  yellow: "#F59E0B", shadow: "#152238", overlay: "rgba(15,23,42,0.42)", white: "#FFFFFF",
+  balanceGradientStart: "#FF5A6B", balanceGradientEnd: "#FF6674",
 } as const;
 
 export const darkColors = {
   background: "#0A0D12", surface: "#151A21", surfaceSecondary: "#1A2029",
-  text: "#F8FAFC", textSecondary: "#A3ACB9", border: "#2B333C",
+  text: "#F8FAFC", textSecondary: "#A3ACB9", border: "#28333C",
   expense: "#FF5A6B", expenseSoft: "#371A24", income: "#16C2A3",
-  incomeSoft: "#103A36", purple: "#B77EF2", blue: "#39B8FA",
-  yellow: "#F3B33D", shadow: "#000000", overlay: "rgba(0,0,0,0.66)", white: "#FFFFFF",
+  incomeSoft: "#103A36", purple: "#8B5CF6", blue: "#3B82F6",
+  yellow: "#F59E0B", shadow: "#000000", overlay: "rgba(0,0,0,0.66)", white: "#FFFFFF",
+  balanceGradientStart: "#163E8F", balanceGradientEnd: "#7C3AED",
 } as const;
 
 export type ThemeColors = { [K in keyof typeof lightColors]: string } & {

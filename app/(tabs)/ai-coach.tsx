@@ -13,12 +13,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { AccessiblePressable as Pressable } from "@/components/AccessiblePressable";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import { fetch } from "expo/fetch";
 import { useTransactions, Transaction } from "@/context/transactions";
 import { getCategoryById, formatINR } from "@/constants/categories";
-import { getApiUrl } from "@/lib/query-client";
 import { ThemeColors } from "@/constants/colors";
 import { useAppTheme } from "@/context/theme";
+import { callAiChat } from "@/src/services/ai";
 
 interface Message {
   id: string;
@@ -33,10 +32,11 @@ const QUICK_PROMPTS = [
   "Am I on track with my expenses?",
 ];
 
+const AI_TIMEOUT_MS = 20_000;
+
 /**
- * The AI coach needs the Express server (and an Anthropic key). When that
- * isn't reachable we still answer from the local data instead of showing a
- * dead-end error.
+ * When Gemini is unavailable, still answer from the user's local data instead
+ * of leaving the conversation in a loading state or showing a dead end.
  */
 function buildOfflineAnswer(
   question: string,
@@ -102,7 +102,7 @@ function buildOfflineAnswer(
     );
   }
 
-  parts.push("AI server is offline right now, so this answer was generated on your device.");
+  parts.push("Gemini is temporarily unavailable, so this answer was generated securely on your device.");
   return parts.join("\n\n");
 }
 
@@ -144,7 +144,6 @@ export default function AICoachScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [streamingContent, setStreamingContent] = useState("");
   const listRef = useRef<FlatList>(null);
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
@@ -170,7 +169,6 @@ export default function AICoachScreen() {
       setMessages((prev) => [...prev, userMsg]);
       setInput("");
       setIsSending(true);
-      setStreamingContent("");
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       scrollToBottom();
 
@@ -182,84 +180,41 @@ export default function AICoachScreen() {
         currentMonth: now.toLocaleDateString("en-IN", { month: "long", year: "numeric" }),
       };
 
-      let accumulated = "";
-
       try {
-        const apiUrl = new URL("/api/ai/finance-coach", getApiUrl()).toString();
-        const resp = await fetch(apiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: text.trim(),
-            transactions: capturedTxns.slice(0, 100).map((t) => ({
-              type: t.type,
-              amount: t.amount,
-              category: t.category,
-              date: t.date,
-              note: t.note,
-            })),
-            context,
-          }),
-        });
-
-        if (!resp.ok || !resp.body) {
-          throw new Error(`Coach unavailable (${resp.status})`);
+        const transactionContext = capturedTxns.slice(0, 100).map((t) => {
+          const category = getCategoryById(t.category)?.label ?? t.category;
+          return `${t.date} | ${t.type} | ₹${formatINR(t.amount)} | ${category}${t.note ? ` | ${t.note}` : ""}`;
+        }).join("\n");
+        const contextText = [
+          `Current month: ${context.currentMonth}`,
+          `Total income: ₹${formatINR(context.totalIncome)}`,
+          `Total expenses: ₹${formatINR(context.totalExpenses)}`,
+          `Balance: ₹${formatINR(context.balance)}`,
+          "Recent transactions:",
+          transactionContext || "No transactions recorded yet.",
+        ].join("\n");
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+        let response: string;
+        try {
+          response = await callAiChat(userMsg.content, contextText, controller.signal);
+        } finally {
+          clearTimeout(timeoutId);
         }
-
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-
-          // SSE events are separated by a blank line. A network chunk can
-          // split an event in half, so keep the trailing partial event.
-          const events = buffer.split("\n\n");
-          buffer = events.pop() ?? "";
-
-          for (const event of events) {
-            for (const line of event.split("\n")) {
-              if (!line.startsWith("data:")) continue;
-              const data = line.slice(5).trim();
-              if (!data) continue;
-
-              let parsed: { text?: string; done?: boolean; error?: string };
-              try {
-                parsed = JSON.parse(data);
-              } catch {
-                continue;
-              }
-
-              if (parsed.error) throw new Error(parsed.error);
-              if (parsed.text) {
-                accumulated += parsed.text;
-                setStreamingContent(accumulated);
-                scrollToBottom();
-              }
-            }
-          }
-        }
-
-        if (!accumulated.trim()) throw new Error("Empty response");
 
         setMessages((prev) => [
           ...prev,
-          { id: `${Date.now()}-ai`, role: "assistant", content: accumulated },
+          { id: `${Date.now()}-ai`, role: "assistant", content: response },
         ]);
-        setStreamingContent("");
       } catch {
-        // Server missing/unreachable (or no Anthropic key): answer from the
-        // data already on the device instead of showing a dead end.
+        // Missing/unreachable Gemini configuration: answer from the data
+        // already on the device instead of leaving the request spinning.
         const aiMsg: Message = {
           id: `${Date.now()}-offline`,
           role: "assistant",
           content: buildOfflineAnswer(userMsg.content, capturedTxns, capturedTotals),
         };
         setMessages((prev) => [...prev, aiMsg]);
-        setStreamingContent("");
       } finally {
         setIsSending(false);
       }
@@ -279,7 +234,7 @@ export default function AICoachScreen() {
           </View>
           <View>
             <Text style={styles.headerTitle}>Finance Coach</Text>
-            <Text style={styles.headerSub}>Powered by Claude AI</Text>
+            <Text style={styles.headerSub}>Powered by Gemini AI</Text>
           </View>
         </View>
         {messages.length > 0 && (
@@ -288,7 +243,6 @@ export default function AICoachScreen() {
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               setMessages([]);
-              setStreamingContent("");
             }}
             style={styles.clearBtn}
           >
@@ -349,9 +303,7 @@ export default function AICoachScreen() {
             ) : null
           }
           ListFooterComponent={
-            streamingContent ? (
-              <AiBubble content={streamingContent} streaming />
-            ) : isSending && !streamingContent ? (
+            isSending ? (
               <View style={styles.aiBubbleRow}>
                 <View style={styles.aiAvatar}>
                   <Ionicons name="sparkles" size={14} color={C.green} />

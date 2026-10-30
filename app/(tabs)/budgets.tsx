@@ -109,7 +109,7 @@ function EmptyCatCard({ cat }: { cat: (typeof EXPENSE_CATEGORIES)[0] }) {
       </View>
       <Text numberOfLines={2} style={styles.emptyCatName}>{cat.label}</Text>
       <View style={styles.plusCircle}>
-        <Ionicons name="add" size={14} color={C.lightGray} />
+        <Ionicons name="chevron-forward" size={14} color={C.lightGray} />
       </View>
     </Pressable>
   );
@@ -248,7 +248,7 @@ const createStyles = (C: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.black },
   screenTitle: {
     fontFamily: "Inter_700Bold",
-    fontSize: 28,
+    fontSize: 32,
     color: C.text,
     marginBottom: 2,
   },

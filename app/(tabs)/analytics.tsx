@@ -29,6 +29,7 @@ import {
 import type { Transaction } from "@/context/transactions";
 import { ThemeColors } from "@/constants/colors";
 import { useAppTheme } from "@/context/theme";
+import { router } from "expo-router";
 
 type Period = "week" | "month" | "3months";
 
@@ -393,6 +394,19 @@ export default function AnalyticsScreen() {
           </View>
         </View>
 
+        <Pressable
+          accessibilityLabel="Ask AI Finance Coach about analytics"
+          style={styles.coachCard}
+          onPress={() => router.push("/(tabs)/ai-coach")}
+        >
+          <View style={styles.coachIcon}><Ionicons name="sparkles" size={22} color={C.purple} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.coachTitle}>Ask AI Finance Coach</Text>
+            <Text style={styles.coachText}>Turn these trends into practical next steps</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={C.textSecondary} />
+        </Pressable>
+
         {/* Category Breakdown */}
         <View style={styles.chartCard}>
           <Text style={styles.cardTitle}>Expense Breakdown</Text>
@@ -414,7 +428,7 @@ const createStyles = (C: ThemeColors) => StyleSheet.create({
   scroll: { paddingHorizontal: 20 },
   screenTitle: {
     fontFamily: "Inter_700Bold",
-    fontSize: 28,
+    fontSize: 32,
     color: C.text,
     letterSpacing: -0.5,
     marginBottom: 20,
@@ -470,6 +484,10 @@ const createStyles = (C: ThemeColors) => StyleSheet.create({
     color: C.offWhite,
     marginBottom: 16,
   },
+  coachCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, minHeight: 76, borderRadius: 16, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, marginBottom: 12 },
+  coachIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: C.purple + "20" },
+  coachTitle: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: C.text },
+  coachText: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textSecondary, marginTop: 3 },
   legend: { flexDirection: "row", gap: 16, marginTop: 4 },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
