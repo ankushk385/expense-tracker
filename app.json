@@ -20,7 +20,7 @@
     "android": {
       "package": "com.expensetracker",
       "adaptiveIcon": {
-        "backgroundColor": "#000000",
+        "backgroundColor": "#050505",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
